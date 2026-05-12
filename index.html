@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dunas Health — Precificação Odontológica</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo">DH</div>
+      <div>
+        <h1>Dunas Health</h1>
+        <p class="subtitle">Sistema de Precificação Odontológica</p>
+      </div>
+    </div>
+    <nav class="tabs">
+      <button class="tab active" data-tab="precificacao">Precificação</button>
+      <button class="tab" data-tab="parametros">Parâmetros da clínica</button>
+      <button class="tab" data-tab="catalogo">Catálogo</button>
+    </nav>
+  </header>
+
+  <main>
+    <!-- ====================== TAB: PRECIFICAÇÃO ====================== -->
+    <section id="precificacao" class="panel active">
+      <div class="layout">
+        <aside class="sidebar">
+          <h2>Especialidades</h2>
+          <ul id="lista-especialidades"></ul>
+        </aside>
+
+        <div class="content">
+          <div class="content-header">
+            <h2 id="titulo-especialidade">Selecione uma especialidade</h2>
+            <input type="text" id="busca" placeholder="Buscar procedimento..." />
+          </div>
+
+          <div class="grid-servicos" id="grid-servicos"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====================== TAB: PARÂMETROS ====================== -->
+    <section id="parametros" class="panel">
+      <div class="card-wide">
+        <h2>Parâmetros gerais da clínica</h2>
+        <p class="hint">
+          Esses valores são usados para calcular o <b>custo da hora-cadeira</b>,
+          base do cálculo de cada procedimento.
+        </p>
+
+        <div class="form-grid">
+          <label>
+            Custos fixos mensais (R$)
+            <input type="number" id="p-custos-fixos" step="0.01" />
+            <small>Aluguel, salários, contador, software, etc.</small>
+          </label>
+          <label>
+            Cadeiras operacionais
+            <input type="number" id="p-cadeiras" step="1" min="1" />
+          </label>
+          <label>
+            Horas produtivas por cadeira / mês
+            <input type="number" id="p-horas-mes" step="1" min="1" />
+            <small>Ex.: 8h x 22 dias = 176h</small>
+          </label>
+          <label>
+            Impostos sobre receita (%)
+            <input type="number" id="p-impostos" step="0.1" />
+          </label>
+          <label>
+            Comissão profissional padrão (%)
+            <input type="number" id="p-comissao" step="0.1" />
+          </label>
+          <label>
+            Margem de lucro desejada padrão (%)
+            <input type="number" id="p-margem" step="0.1" />
+          </label>
+          <label>
+            Desconto máximo permitido (%)
+            <input type="number" id="p-desconto-max" step="0.1" />
+          </label>
+        </div>
+
+        <div class="resumo">
+          <div>
+            <span class="resumo-label">Custo da hora-cadeira</span>
+            <span class="resumo-valor" id="r-hora-cadeira">R$ 0,00</span>
+          </div>
+        </div>
+
+        <button class="btn-primary" id="salvar-parametros">Salvar parâmetros</button>
+      </div>
+    </section>
+
+    <!-- ====================== TAB: CATÁLOGO ====================== -->
+    <section id="catalogo" class="panel">
+      <div class="card-wide">
+        <div class="catalog-header">
+          <h2>Catálogo de procedimentos</h2>
+          <button class="btn-primary" id="novo-servico">+ Novo procedimento</button>
+        </div>
+        <p class="hint">
+          Edite custos, tempo e comissão de cada procedimento pré-cadastrado,
+          ou adicione novos.
+        </p>
+        <div class="tabela-wrapper">
+          <table class="tabela-catalogo">
+            <thead>
+              <tr>
+                <th>Especialidade</th>
+                <th>Procedimento</th>
+                <th>Tempo (min)</th>
+                <th>Custo direto (R$)</th>
+                <th>Comissão (%)</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="tabela-catalogo-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ====================== MODAL: precificação ====================== -->
+  <div class="modal" id="modal-precificacao">
+    <div class="modal-content">
+      <header>
+        <h3 id="modal-titulo">Precificação</h3>
+        <button class="modal-close" data-close-modal>&times;</button>
+      </header>
+      <div class="modal-body">
+        <div class="form-grid">
+          <label>
+            Tempo de cadeira (min)
+            <input type="number" id="m-tempo" step="1" />
+          </label>
+          <label>
+            Custo direto / insumos (R$)
+            <input type="number" id="m-custo-direto" step="0.01" />
+            <small>Materiais, laboratório, descartáveis</small>
+          </label>
+          <label>
+            Comissão do profissional (%)
+            <input type="number" id="m-comissao" step="0.1" />
+          </label>
+          <label>
+            Margem de lucro desejada (%)
+            <input type="number" id="m-margem" step="0.1" />
+          </label>
+          <label>
+            Desconto máximo (%)
+            <input type="number" id="m-desconto" step="0.1" />
+          </label>
+          <label>
+            Impostos (%)
+            <input type="number" id="m-impostos" step="0.1" />
+          </label>
+        </div>
+
+        <div class="resultado">
+          <div class="resultado-linha">
+            <span>Custo fixo alocado (hora-cadeira)</span>
+            <b id="res-fixo">R$ 0,00</b>
+          </div>
+          <div class="resultado-linha">
+            <span>Custo direto</span>
+            <b id="res-direto">R$ 0,00</b>
+          </div>
+          <div class="resultado-linha total">
+            <span>Custo total do procedimento</span>
+            <b id="res-custo-total">R$ 0,00</b>
+          </div>
+          <div class="resultado-linha destaque">
+            <span>Ponto de equilíbrio</span>
+            <b id="res-equilibrio">R$ 0,00</b>
+            <small>Preço mínimo que cobre custos + impostos + comissão.</small>
+          </div>
+          <div class="resultado-linha destaque sucesso">
+            <span>Preço sugerido</span>
+            <b id="res-sugerido">R$ 0,00</b>
+            <small>Atinge a margem desejada.</small>
+          </div>
+          <div class="resultado-linha destaque alerta">
+            <span>Preço mínimo com desconto máximo</span>
+            <b id="res-minimo">R$ 0,00</b>
+            <small>Não vender abaixo deste valor.</small>
+          </div>
+          <div class="resultado-linha">
+            <span>Margem efetiva no preço sugerido</span>
+            <b id="res-margem-efetiva">0%</b>
+          </div>
+        </div>
+      </div>
+      <footer>
+        <button class="btn-secondary" data-close-modal>Fechar</button>
+        <button class="btn-primary" id="salvar-precificacao">Salvar precificação</button>
+      </footer>
+    </div>
+  </div>
+
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
