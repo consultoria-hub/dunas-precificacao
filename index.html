@@ -16,15 +16,85 @@
       </div>
     </div>
     <nav class="tabs">
-      <button class="tab active" data-tab="precificacao">Precificação</button>
-      <button class="tab" data-tab="parametros">Parâmetros da clínica</button>
+      <button class="tab active" data-tab="historico">Histórico</button>
+      <button class="tab" data-tab="precificacao">Precificação</button>
+      <button class="tab" data-tab="custos-fixos">Custos Fixos</button>
+      <button class="tab" data-tab="parametros">Parâmetros</button>
       <button class="tab" data-tab="catalogo">Catálogo</button>
     </nav>
   </header>
 
   <main>
+    <!-- ====================== TAB: HISTÓRICO ====================== -->
+    <section id="historico" class="panel active">
+      <div class="card-wide">
+        <div class="catalog-header">
+          <div>
+            <h2>Histórico de orçamentos</h2>
+            <p class="hint">Todos os orçamentos gerados com seus respectivos status.</p>
+          </div>
+          <div class="actions">
+            <select id="filtro-status" class="select">
+              <option value="">Todos os status</option>
+              <option value="pendente">Pendente</option>
+              <option value="aprovado">Aprovado</option>
+              <option value="rejeitado">Rejeitado</option>
+              <option value="executado">Executado</option>
+            </select>
+            <input type="text" id="busca-historico" placeholder="Buscar por paciente ou procedimento..." />
+            <button class="btn-primary" id="ir-precificacao">+ Novo orçamento</button>
+          </div>
+        </div>
+
+        <div class="stats-bar">
+          <div class="stat-card">
+            <span class="stat-label">Total</span>
+            <span class="stat-valor" id="stat-total">0</span>
+          </div>
+          <div class="stat-card pendente">
+            <span class="stat-label">Pendente</span>
+            <span class="stat-valor" id="stat-pendente">0</span>
+          </div>
+          <div class="stat-card aprovado">
+            <span class="stat-label">Aprovado</span>
+            <span class="stat-valor" id="stat-aprovado">0</span>
+          </div>
+          <div class="stat-card rejeitado">
+            <span class="stat-label">Rejeitado</span>
+            <span class="stat-valor" id="stat-rejeitado">0</span>
+          </div>
+          <div class="stat-card executado">
+            <span class="stat-label">Executado</span>
+            <span class="stat-valor" id="stat-executado">0</span>
+          </div>
+          <div class="stat-card destaque">
+            <span class="stat-label">Receita executada</span>
+            <span class="stat-valor" id="stat-receita">R$ 0,00</span>
+          </div>
+        </div>
+
+        <div class="tabela-wrapper">
+          <table class="tabela-catalogo tabela-historico">
+            <thead>
+              <tr>
+                <th>Data</th>
+                <th>Paciente</th>
+                <th>Procedimento</th>
+                <th>Especialidade</th>
+                <th>Preço</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="tabela-historico-body"></tbody>
+          </table>
+          <p id="historico-vazio" class="vazio">Nenhum orçamento ainda. Clique em <b>+ Novo orçamento</b>.</p>
+        </div>
+      </div>
+    </section>
+
     <!-- ====================== TAB: PRECIFICAÇÃO ====================== -->
-    <section id="precificacao" class="panel active">
+    <section id="precificacao" class="panel">
       <div class="layout">
         <aside class="sidebar">
           <h2>Especialidades</h2>
@@ -42,20 +112,65 @@
       </div>
     </section>
 
+    <!-- ====================== TAB: CUSTOS FIXOS ====================== -->
+    <section id="custos-fixos" class="panel">
+      <div class="card-wide">
+        <div class="catalog-header">
+          <div>
+            <h2>Composição dos custos fixos</h2>
+            <p class="hint">
+              Itemize todos os custos mensais. O total alimenta o cálculo da
+              <b>hora-cadeira</b> automaticamente.
+            </p>
+          </div>
+          <button class="btn-primary" id="novo-custo">+ Novo item</button>
+        </div>
+
+        <div class="stats-bar">
+          <div class="stat-card destaque" style="flex:1;">
+            <span class="stat-label">Total de custos fixos / mês</span>
+            <span class="stat-valor" id="cf-total">R$ 0,00</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">Custo da hora-cadeira</span>
+            <span class="stat-valor" id="cf-hora">R$ 0,00</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">Itens</span>
+            <span class="stat-valor" id="cf-itens">0</span>
+          </div>
+        </div>
+
+        <div class="tabela-wrapper">
+          <table class="tabela-catalogo">
+            <thead>
+              <tr>
+                <th style="width:160px;">Categoria</th>
+                <th>Descrição</th>
+                <th style="width:160px;">Valor mensal (R$)</th>
+                <th style="width:60px;"></th>
+              </tr>
+            </thead>
+            <tbody id="tabela-custos-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
     <!-- ====================== TAB: PARÂMETROS ====================== -->
     <section id="parametros" class="panel">
       <div class="card-wide">
         <h2>Parâmetros gerais da clínica</h2>
         <p class="hint">
-          Esses valores são usados para calcular o <b>custo da hora-cadeira</b>,
-          base do cálculo de cada procedimento.
+          Estes valores são usados como padrão nas precificações.
+          O total de <b>custos fixos</b> vem da aba "Custos Fixos".
         </p>
 
         <div class="form-grid">
           <label>
             Custos fixos mensais (R$)
-            <input type="number" id="p-custos-fixos" step="0.01" />
-            <small>Aluguel, salários, contador, software, etc.</small>
+            <input type="number" id="p-custos-fixos" step="0.01" readonly />
+            <small>Calculado a partir da aba Custos Fixos.</small>
           </label>
           <label>
             Cadeiras operacionais
@@ -99,13 +214,12 @@
     <section id="catalogo" class="panel">
       <div class="card-wide">
         <div class="catalog-header">
-          <h2>Catálogo de procedimentos</h2>
+          <div>
+            <h2>Catálogo de procedimentos</h2>
+            <p class="hint">Edite custos, tempo e comissão dos procedimentos pré-cadastrados, ou adicione novos.</p>
+          </div>
           <button class="btn-primary" id="novo-servico">+ Novo procedimento</button>
         </div>
-        <p class="hint">
-          Edite custos, tempo e comissão de cada procedimento pré-cadastrado,
-          ou adicione novos.
-        </p>
         <div class="tabela-wrapper">
           <table class="tabela-catalogo">
             <thead>
@@ -134,6 +248,10 @@
       </header>
       <div class="modal-body">
         <div class="form-grid">
+          <label>
+            Paciente / Cliente
+            <input type="text" id="m-paciente" placeholder="Nome (opcional)" />
+          </label>
           <label>
             Tempo de cadeira (min)
             <input type="number" id="m-tempo" step="1" />
@@ -196,8 +314,27 @@
         </div>
       </div>
       <footer>
-        <button class="btn-secondary" data-close-modal>Fechar</button>
-        <button class="btn-primary" id="salvar-precificacao">Salvar precificação</button>
+        <button class="btn-secondary" data-close-modal>Cancelar</button>
+        <button class="btn-primary" id="salvar-precificacao">Gerar orçamento</button>
+      </footer>
+    </div>
+  </div>
+
+  <!-- ====================== MODAL: detalhe do orçamento ====================== -->
+  <div class="modal" id="modal-orcamento">
+    <div class="modal-content">
+      <header>
+        <h3 id="orc-titulo">Detalhe do orçamento</h3>
+        <button class="modal-close" data-close-modal>&times;</button>
+      </header>
+      <div class="modal-body" id="orc-body"></div>
+      <footer>
+        <button class="btn-danger" id="orc-excluir">Excluir</button>
+        <span style="flex:1;"></span>
+        <button class="btn-status" data-status="pendente">Pendente</button>
+        <button class="btn-status sucesso" data-status="aprovado">Aprovado</button>
+        <button class="btn-status erro" data-status="rejeitado">Rejeitado</button>
+        <button class="btn-status info" data-status="executado">Executado</button>
       </footer>
     </div>
   </div>

@@ -159,9 +159,31 @@ const CATALOGO_PADRAO = [
   }
 ];
 
+// Composição padrão de custos fixos mensais do consultório
+const CUSTOS_FIXOS_PADRAO = [
+  { categoria: "Infraestrutura", descricao: "Aluguel do imóvel", valor: 6500 },
+  { categoria: "Infraestrutura", descricao: "Condomínio + IPTU", valor: 850 },
+  { categoria: "Utilidades", descricao: "Energia elétrica", valor: 950 },
+  { categoria: "Utilidades", descricao: "Água e esgoto", valor: 280 },
+  { categoria: "Utilidades", descricao: "Internet + telefonia", valor: 350 },
+  { categoria: "Pessoal", descricao: "Salário recepcionista", valor: 2800 },
+  { categoria: "Pessoal", descricao: "Salário ASB (auxiliar)", valor: 2400 },
+  { categoria: "Pessoal", descricao: "Encargos sociais (FGTS+INSS)", valor: 2100 },
+  { categoria: "Pessoal", descricao: "Vale-transporte / refeição", valor: 750 },
+  { categoria: "Serviços", descricao: "Contador", valor: 650 },
+  { categoria: "Serviços", descricao: "Software de gestão", valor: 380 },
+  { categoria: "Serviços", descricao: "Manutenção de equipamentos", valor: 450 },
+  { categoria: "Marketing", descricao: "Anúncios e mídias sociais", valor: 1200 },
+  { categoria: "Operacional", descricao: "Materiais de limpeza", valor: 280 },
+  { categoria: "Operacional", descricao: "Insumos de esterilização", valor: 520 },
+  { categoria: "Operacional", descricao: "EPIs (luvas, máscaras, etc.)", valor: 680 },
+  { categoria: "Regulatório", descricao: "CRO / Alvará / Anvisa", valor: 180 },
+  { categoria: "Financeiro", descricao: "Tarifas bancárias / maquininha fixa", valor: 220 }
+];
+
 // Parâmetros padrão da clínica
 const PARAMETROS_PADRAO = {
-  custosFixos: 35000,    // R$/mês
+  custosFixos: 21540,    // soma do CUSTOS_FIXOS_PADRAO (R$/mês)
   cadeiras: 2,
   horasMes: 176,         // 8h x 22 dias
   impostos: 8.5,         // Simples Nacional ~ 6-15%

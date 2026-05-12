@@ -5,15 +5,30 @@
 const STORAGE_KEYS = {
   catalogo: "dunas.catalogo",
   parametros: "dunas.parametros",
-  precos: "dunas.precos" // mapa: "espId::servicoIdx" -> { tempo, custoDireto, ... resultado }
+  custosFixos: "dunas.custosFixos",
+  historico: "dunas.historico"
 };
 
 // --- Estado em memória ---
 let catalogo = carregar(STORAGE_KEYS.catalogo, CATALOGO_PADRAO);
 let parametros = carregar(STORAGE_KEYS.parametros, PARAMETROS_PADRAO);
-let precosSalvos = carregar(STORAGE_KEYS.precos, {});
+let custosFixos = carregar(STORAGE_KEYS.custosFixos, CUSTOS_FIXOS_PADRAO);
+let historico = carregar(STORAGE_KEYS.historico, []);
 let especialidadeAtiva = catalogo[0]?.id;
-let servicoEditando = null; // { espId, idx, servico }
+let servicoEditando = null;
+let orcamentoAtivo = null;
+
+const STATUS_LABELS = {
+  pendente: "Pendente",
+  aprovado: "Aprovado",
+  rejeitado: "Rejeitado",
+  executado: "Executado"
+};
+
+const CATEGORIAS_CUSTO = [
+  "Infraestrutura", "Utilidades", "Pessoal", "Serviços",
+  "Marketing", "Operacional", "Regulatório", "Financeiro", "Outros"
+];
 
 // ============================================================
 // Persistência
@@ -22,9 +37,7 @@ function carregar(chave, padrao) {
   try {
     const v = localStorage.getItem(chave);
     return v ? JSON.parse(v) : structuredClone(padrao);
-  } catch {
-    return structuredClone(padrao);
-  }
+  } catch { return structuredClone(padrao); }
 }
 function salvar(chave, valor) {
   localStorage.setItem(chave, JSON.stringify(valor));
@@ -33,32 +46,25 @@ function salvar(chave, valor) {
 // ============================================================
 // Formatação
 // ============================================================
-const fmtBRL = new Intl.NumberFormat("pt-BR", {
-  style: "currency",
-  currency: "BRL"
-});
+const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const fmt = (v) => fmtBRL.format(isFinite(v) ? v : 0);
 const fmtPct = (v) => (isFinite(v) ? v.toFixed(1) : "0") + "%";
+const fmtData = (iso) => new Date(iso).toLocaleDateString("pt-BR", {
+  day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit"
+});
 
 // ============================================================
 // Cálculo de precificação
 // ============================================================
-function custoHoraCadeira() {
-  const { custosFixos, cadeiras, horasMes } = parametros;
-  const total = cadeiras * horasMes;
-  return total > 0 ? custosFixos / total : 0;
+function totalCustosFixos() {
+  return custosFixos.reduce((acc, c) => acc + (parseFloat(c.valor) || 0), 0);
 }
 
-/**
- * Calcula a estrutura de preços de um procedimento.
- *
- * Custo total      = custo fixo alocado (tempo x hora-cadeira) + custo direto
- * Ponto equilíbrio = custo total / (1 - (impostos + comissão)/100)
- *                    → preço onde lucro = 0 após pagar comissão e impostos
- * Preço sugerido   = custo total / (1 - (impostos + comissão + margem)/100)
- *                    → preço que atinge a margem de lucro desejada
- * Preço mínimo     = preço sugerido x (1 - desconto máximo)
- */
+function custoHoraCadeira() {
+  const total = parametros.cadeiras * parametros.horasMes;
+  return total > 0 ? totalCustosFixos() / total : 0;
+}
+
 function calcularPreco({ tempo, custoDireto, comissao, margem, descontoMax, impostos }) {
   const horaCadeira = custoHoraCadeira();
   const custoFixoAlocado = (tempo / 60) * horaCadeira;
@@ -71,37 +77,155 @@ function calcularPreco({ tempo, custoDireto, comissao, margem, descontoMax, impo
   const sugerido = cargaSugerido < 1 ? custoTotal / (1 - cargaSugerido) : 0;
   const minimo = sugerido * (1 - descontoMax / 100);
 
-  // margem efetiva = (preço - custoTotal - impostos - comissão) / preço
-  const margemEfetiva =
-    sugerido > 0
-      ? ((sugerido - custoTotal - sugerido * (impostos + comissao) / 100) / sugerido) * 100
-      : 0;
+  const margemEfetiva = sugerido > 0
+    ? ((sugerido - custoTotal - sugerido * (impostos + comissao) / 100) / sugerido) * 100
+    : 0;
 
-  return {
-    horaCadeira,
-    custoFixoAlocado,
-    custoTotal,
-    equilibrio,
-    sugerido,
-    minimo,
-    margemEfetiva
-  };
+  return { horaCadeira, custoFixoAlocado, custoTotal, equilibrio, sugerido, minimo, margemEfetiva };
 }
 
 // ============================================================
 // Tabs
 // ============================================================
+function abrirAba(nome) {
+  document.querySelectorAll(".tab").forEach((b) => {
+    b.classList.toggle("active", b.dataset.tab === nome);
+  });
+  document.querySelectorAll(".panel").forEach((p) => {
+    p.classList.toggle("active", p.id === nome);
+  });
+}
+
 document.querySelectorAll(".tab").forEach((btn) => {
+  btn.addEventListener("click", () => abrirAba(btn.dataset.tab));
+});
+
+document.getElementById("ir-precificacao").addEventListener("click", () => abrirAba("precificacao"));
+
+// ============================================================
+// HISTÓRICO
+// ============================================================
+function renderHistorico() {
+  const tbody = document.getElementById("tabela-historico-body");
+  const vazio = document.getElementById("historico-vazio");
+  tbody.innerHTML = "";
+
+  const filtroStatus = document.getElementById("filtro-status").value;
+  const filtroBusca = document.getElementById("busca-historico").value.toLowerCase().trim();
+
+  const filtrados = historico
+    .filter(o => !filtroStatus || o.status === filtroStatus)
+    .filter(o => {
+      if (!filtroBusca) return true;
+      return (o.paciente || "").toLowerCase().includes(filtroBusca)
+          || o.servicoNome.toLowerCase().includes(filtroBusca)
+          || o.especialidadeNome.toLowerCase().includes(filtroBusca);
+    })
+    .sort((a, b) => b.criadoEm.localeCompare(a.criadoEm));
+
+  vazio.style.display = filtrados.length === 0 ? "block" : "none";
+
+  filtrados.forEach((o) => {
+    const tr = document.createElement("tr");
+    tr.className = "row-clickable";
+    tr.innerHTML = `
+      <td>${fmtData(o.criadoEm)}</td>
+      <td>${escapeHtml(o.paciente || "—")}</td>
+      <td>${escapeHtml(o.servicoNome)}</td>
+      <td>${escapeHtml(o.especialidadeNome)}</td>
+      <td class="preco-cell">${fmt(o.sugerido)}</td>
+      <td><span class="status-badge status-${o.status}">${STATUS_LABELS[o.status]}</span></td>
+      <td></td>
+    `;
+    tr.onclick = () => abrirOrcamento(o.id);
+    tbody.appendChild(tr);
+  });
+
+  renderStats();
+}
+
+function renderStats() {
+  const total = historico.length;
+  const cont = { pendente: 0, aprovado: 0, rejeitado: 0, executado: 0 };
+  let receita = 0;
+  historico.forEach(o => {
+    cont[o.status] = (cont[o.status] || 0) + 1;
+    if (o.status === "executado") receita += o.sugerido;
+  });
+  document.getElementById("stat-total").textContent = total;
+  document.getElementById("stat-pendente").textContent = cont.pendente;
+  document.getElementById("stat-aprovado").textContent = cont.aprovado;
+  document.getElementById("stat-rejeitado").textContent = cont.rejeitado;
+  document.getElementById("stat-executado").textContent = cont.executado;
+  document.getElementById("stat-receita").textContent = fmt(receita);
+}
+
+document.getElementById("filtro-status").addEventListener("change", renderHistorico);
+document.getElementById("busca-historico").addEventListener("input", renderHistorico);
+
+function abrirOrcamento(id) {
+  const o = historico.find(x => x.id === id);
+  if (!o) return;
+  orcamentoAtivo = o;
+
+  document.getElementById("orc-titulo").textContent = `${o.especialidadeNome} — ${o.servicoNome}`;
+
+  const body = document.getElementById("orc-body");
+  body.innerHTML = `
+    <div style="margin-bottom:16px;">
+      <span class="status-badge status-${o.status}">${STATUS_LABELS[o.status]}</span>
+    </div>
+    <div class="orc-grid">
+      <div class="item"><span>Paciente</span><b>${escapeHtml(o.paciente || "—")}</b></div>
+      <div class="item"><span>Criado em</span><b>${fmtData(o.criadoEm)}</b></div>
+      <div class="item"><span>Tempo de cadeira</span><b>${o.tempo} min</b></div>
+      <div class="item"><span>Custo direto</span><b>${fmt(o.custoDireto)}</b></div>
+      <div class="item"><span>Comissão</span><b>${fmtPct(o.comissao)}</b></div>
+      <div class="item"><span>Impostos</span><b>${fmtPct(o.impostos)}</b></div>
+      <div class="item"><span>Margem desejada</span><b>${fmtPct(o.margem)}</b></div>
+      <div class="item"><span>Desconto máximo</span><b>${fmtPct(o.descontoMax)}</b></div>
+    </div>
+    <div class="resultado">
+      <div class="resultado-linha"><span>Custo fixo alocado</span><b>${fmt(o.custoFixoAlocado)}</b></div>
+      <div class="resultado-linha"><span>Custo direto</span><b>${fmt(o.custoDireto)}</b></div>
+      <div class="resultado-linha total"><span>Custo total</span><b>${fmt(o.custoTotal)}</b></div>
+      <div class="resultado-linha destaque"><span>Ponto de equilíbrio</span><b>${fmt(o.equilibrio)}</b></div>
+      <div class="resultado-linha destaque sucesso"><span>Preço sugerido</span><b>${fmt(o.sugerido)}</b></div>
+      <div class="resultado-linha destaque alerta"><span>Preço mínimo c/ desconto</span><b>${fmt(o.minimo)}</b></div>
+      <div class="resultado-linha"><span>Margem efetiva</span><b>${fmtPct(o.margemEfetiva)}</b></div>
+    </div>
+  `;
+
+  document.getElementById("modal-orcamento").classList.add("open");
+}
+
+document.querySelectorAll("#modal-orcamento .btn-status").forEach(btn => {
   btn.addEventListener("click", () => {
-    document.querySelectorAll(".tab").forEach((b) => b.classList.remove("active"));
-    document.querySelectorAll(".panel").forEach((p) => p.classList.remove("active"));
-    btn.classList.add("active");
-    document.getElementById(btn.dataset.tab).classList.add("active");
+    if (!orcamentoAtivo) return;
+    orcamentoAtivo.status = btn.dataset.status;
+    orcamentoAtivo.atualizadoEm = new Date().toISOString();
+    salvar(STORAGE_KEYS.historico, historico);
+    renderHistorico();
+    fecharModalOrcamento();
   });
 });
 
+document.getElementById("orc-excluir").addEventListener("click", () => {
+  if (!orcamentoAtivo) return;
+  if (!confirm("Excluir este orçamento? Esta ação não pode ser desfeita.")) return;
+  historico = historico.filter(o => o.id !== orcamentoAtivo.id);
+  salvar(STORAGE_KEYS.historico, historico);
+  renderHistorico();
+  fecharModalOrcamento();
+});
+
+function fecharModalOrcamento() {
+  document.getElementById("modal-orcamento").classList.remove("open");
+  orcamentoAtivo = null;
+}
+
 // ============================================================
-// Renderização — Sidebar de especialidades
+// Sidebar de especialidades
 // ============================================================
 function renderEspecialidades() {
   const ul = document.getElementById("lista-especialidades");
@@ -124,7 +248,7 @@ function renderEspecialidades() {
 }
 
 // ============================================================
-// Renderização — Grid de procedimentos
+// Grid de procedimentos
 // ============================================================
 function renderServicos() {
   const esp = catalogo.find((e) => e.id === especialidadeAtiva);
@@ -138,18 +262,20 @@ function renderServicos() {
   esp.servicos.forEach((s, idx) => {
     if (filtro && !s.nome.toLowerCase().includes(filtro)) return;
 
+    // Último orçamento deste procedimento (para mostrar preço base)
+    const ultimo = historico
+      .filter(o => o.especialidadeId === esp.id && o.servicoIdx === idx)
+      .sort((a, b) => b.criadoEm.localeCompare(a.criadoEm))[0];
+
     const card = document.createElement("div");
     card.className = "card-servico";
 
-    const chaveSalva = `${esp.id}::${idx}`;
-    const salvo = precosSalvos[chaveSalva];
-
-    const precoHtml = salvo
-      ? `<div class="preco">${fmt(salvo.sugerido)}</div>`
+    const precoHtml = ultimo
+      ? `<div class="preco">${fmt(ultimo.sugerido)}</div>`
       : `<div class="preco-vazio">Clique para precificar</div>`;
 
     card.innerHTML = `
-      <h4>${s.nome}</h4>
+      <h4>${escapeHtml(s.nome)}</h4>
       <div class="meta">
         <span>⏱ ${s.tempo} min</span>
         <span>📦 ${fmt(s.custoDireto)}</span>
@@ -161,7 +287,7 @@ function renderServicos() {
   });
 
   if (grid.children.length === 0) {
-    grid.innerHTML = `<p style="color:var(--texto-claro);font-style:italic;">Nenhum procedimento encontrado.</p>`;
+    grid.innerHTML = `<p class="vazio">Nenhum procedimento encontrado.</p>`;
   }
 }
 
@@ -173,18 +299,16 @@ document.getElementById("busca").addEventListener("input", renderServicos);
 function abrirModal(espId, idx) {
   const esp = catalogo.find((e) => e.id === espId);
   const servico = esp.servicos[idx];
-  servicoEditando = { espId, idx, servico };
-
-  const chave = `${espId}::${idx}`;
-  const salvo = precosSalvos[chave];
+  servicoEditando = { espId, espNome: esp.nome, idx, servico };
 
   document.getElementById("modal-titulo").textContent = `${esp.nome} — ${servico.nome}`;
-  document.getElementById("m-tempo").value = salvo?.tempo ?? servico.tempo;
-  document.getElementById("m-custo-direto").value = salvo?.custoDireto ?? servico.custoDireto;
-  document.getElementById("m-comissao").value = salvo?.comissao ?? servico.comissao ?? parametros.comissao;
-  document.getElementById("m-margem").value = salvo?.margem ?? parametros.margem;
-  document.getElementById("m-desconto").value = salvo?.descontoMax ?? parametros.descontoMax;
-  document.getElementById("m-impostos").value = salvo?.impostos ?? parametros.impostos;
+  document.getElementById("m-paciente").value = "";
+  document.getElementById("m-tempo").value = servico.tempo;
+  document.getElementById("m-custo-direto").value = servico.custoDireto;
+  document.getElementById("m-comissao").value = servico.comissao ?? parametros.comissao;
+  document.getElementById("m-margem").value = parametros.margem;
+  document.getElementById("m-desconto").value = parametros.descontoMax;
+  document.getElementById("m-impostos").value = parametros.impostos;
 
   atualizarCalculo();
   document.getElementById("modal-precificacao").classList.add("open");
@@ -196,15 +320,24 @@ function fecharModal() {
 }
 
 document.querySelectorAll("[data-close-modal]").forEach((b) =>
-  b.addEventListener("click", fecharModal)
+  b.addEventListener("click", () => {
+    fecharModal();
+    fecharModalOrcamento();
+  })
 );
 
-document.getElementById("modal-precificacao").addEventListener("click", (e) => {
-  if (e.target.id === "modal-precificacao") fecharModal();
+document.querySelectorAll(".modal").forEach(modal => {
+  modal.addEventListener("click", (e) => {
+    if (e.target === modal) {
+      fecharModal();
+      fecharModalOrcamento();
+    }
+  });
 });
 
 function lerInputsModal() {
   return {
+    paciente: document.getElementById("m-paciente").value.trim(),
     tempo: parseFloat(document.getElementById("m-tempo").value) || 0,
     custoDireto: parseFloat(document.getElementById("m-custo-direto").value) || 0,
     comissao: parseFloat(document.getElementById("m-comissao").value) || 0,
@@ -233,30 +366,100 @@ function atualizarCalculo() {
 
 document.getElementById("salvar-precificacao").addEventListener("click", () => {
   if (!servicoEditando) return;
-  const { espId, idx } = servicoEditando;
+  const { espId, espNome, idx, servico } = servicoEditando;
   const inputs = lerInputsModal();
   const r = calcularPreco(inputs);
 
-  precosSalvos[`${espId}::${idx}`] = { ...inputs, ...r };
-  salvar(STORAGE_KEYS.precos, precosSalvos);
+  const orcamento = {
+    id: "orc-" + Date.now() + "-" + Math.random().toString(36).slice(2, 7),
+    especialidadeId: espId,
+    especialidadeNome: espNome,
+    servicoIdx: idx,
+    servicoNome: servico.nome,
+    status: "pendente",
+    criadoEm: new Date().toISOString(),
+    atualizadoEm: new Date().toISOString(),
+    ...inputs,
+    ...r
+  };
 
-  // Atualiza também o catálogo (tempo / custo / comissão) caso o usuário tenha ajustado
-  const esp = catalogo.find((e) => e.id === espId);
-  esp.servicos[idx].tempo = inputs.tempo;
-  esp.servicos[idx].custoDireto = inputs.custoDireto;
-  esp.servicos[idx].comissao = inputs.comissao;
+  historico.push(orcamento);
+  salvar(STORAGE_KEYS.historico, historico);
+
+  // Sincroniza catálogo se o usuário ajustou tempo/custo/comissão
+  servico.tempo = inputs.tempo;
+  servico.custoDireto = inputs.custoDireto;
+  servico.comissao = inputs.comissao;
   salvar(STORAGE_KEYS.catalogo, catalogo);
 
   fecharModal();
   renderServicos();
   renderCatalogo();
+  renderHistorico();
+  abrirAba("historico");
 });
 
 // ============================================================
-// Parâmetros da clínica
+// CUSTOS FIXOS
+// ============================================================
+function renderCustosFixos() {
+  const tbody = document.getElementById("tabela-custos-body");
+  tbody.innerHTML = "";
+
+  custosFixos.forEach((item, idx) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>
+        <select data-f="categoria">
+          ${CATEGORIAS_CUSTO.map(c => `<option value="${c}" ${c === item.categoria ? "selected" : ""}>${c}</option>`).join("")}
+        </select>
+      </td>
+      <td><input data-f="descricao" value="${escapeHtml(item.descricao)}" /></td>
+      <td><input data-f="valor" type="number" step="0.01" value="${item.valor}" /></td>
+      <td><button class="btn-excluir" title="Remover">✕</button></td>
+    `;
+    tr.querySelectorAll("[data-f]").forEach((el) => {
+      el.addEventListener("change", () => {
+        const f = el.dataset.f;
+        item[f] = f === "valor" ? (parseFloat(el.value) || 0) : el.value;
+        salvar(STORAGE_KEYS.custosFixos, custosFixos);
+        atualizarTotaisCustosFixos();
+        renderParametros();
+      });
+    });
+    tr.querySelector(".btn-excluir").addEventListener("click", () => {
+      if (confirm(`Remover "${item.descricao}"?`)) {
+        custosFixos.splice(idx, 1);
+        salvar(STORAGE_KEYS.custosFixos, custosFixos);
+        renderCustosFixos();
+        renderParametros();
+      }
+    });
+    tbody.appendChild(tr);
+  });
+
+  atualizarTotaisCustosFixos();
+}
+
+function atualizarTotaisCustosFixos() {
+  document.getElementById("cf-total").textContent = fmt(totalCustosFixos());
+  document.getElementById("cf-hora").textContent = fmt(custoHoraCadeira());
+  document.getElementById("cf-itens").textContent = custosFixos.length;
+}
+
+document.getElementById("novo-custo").addEventListener("click", () => {
+  custosFixos.push({ categoria: "Outros", descricao: "Novo item", valor: 0 });
+  salvar(STORAGE_KEYS.custosFixos, custosFixos);
+  renderCustosFixos();
+  renderParametros();
+});
+
+// ============================================================
+// PARÂMETROS
 // ============================================================
 function renderParametros() {
-  document.getElementById("p-custos-fixos").value = parametros.custosFixos;
+  parametros.custosFixos = totalCustosFixos();
+  document.getElementById("p-custos-fixos").value = parametros.custosFixos.toFixed(2);
   document.getElementById("p-cadeiras").value = parametros.cadeiras;
   document.getElementById("p-horas-mes").value = parametros.horasMes;
   document.getElementById("p-impostos").value = parametros.impostos;
@@ -266,18 +469,18 @@ function renderParametros() {
   document.getElementById("r-hora-cadeira").textContent = fmt(custoHoraCadeira());
 }
 
-["p-custos-fixos", "p-cadeiras", "p-horas-mes"].forEach((id) =>
+["p-cadeiras", "p-horas-mes"].forEach((id) =>
   document.getElementById(id).addEventListener("input", () => {
-    parametros.custosFixos = parseFloat(document.getElementById("p-custos-fixos").value) || 0;
     parametros.cadeiras = parseFloat(document.getElementById("p-cadeiras").value) || 1;
     parametros.horasMes = parseFloat(document.getElementById("p-horas-mes").value) || 1;
     document.getElementById("r-hora-cadeira").textContent = fmt(custoHoraCadeira());
+    atualizarTotaisCustosFixos();
   })
 );
 
 document.getElementById("salvar-parametros").addEventListener("click", () => {
   parametros = {
-    custosFixos: parseFloat(document.getElementById("p-custos-fixos").value) || 0,
+    custosFixos: totalCustosFixos(),
     cadeiras: parseFloat(document.getElementById("p-cadeiras").value) || 1,
     horasMes: parseFloat(document.getElementById("p-horas-mes").value) || 1,
     impostos: parseFloat(document.getElementById("p-impostos").value) || 0,
@@ -287,11 +490,11 @@ document.getElementById("salvar-parametros").addEventListener("click", () => {
   };
   salvar(STORAGE_KEYS.parametros, parametros);
   renderParametros();
-  alert("Parâmetros salvos com sucesso.");
+  flash("Parâmetros salvos com sucesso");
 });
 
 // ============================================================
-// Catálogo (edição inline)
+// CATÁLOGO
 // ============================================================
 function renderCatalogo() {
   const tbody = document.getElementById("tabela-catalogo-body");
@@ -301,7 +504,7 @@ function renderCatalogo() {
     esp.servicos.forEach((s, idx) => {
       const tr = document.createElement("tr");
       tr.innerHTML = `
-        <td>${esp.nome}</td>
+        <td>${escapeHtml(esp.nome)}</td>
         <td><input data-f="nome" value="${escapeHtml(s.nome)}" /></td>
         <td><input data-f="tempo" type="number" value="${s.tempo}" /></td>
         <td><input data-f="custoDireto" type="number" step="0.01" value="${s.custoDireto}" /></td>
@@ -311,7 +514,7 @@ function renderCatalogo() {
       tr.querySelectorAll("input").forEach((inp) => {
         inp.addEventListener("change", () => {
           const f = inp.dataset.f;
-          s[f] = f === "nome" ? inp.value : parseFloat(inp.value) || 0;
+          s[f] = f === "nome" ? inp.value : (parseFloat(inp.value) || 0);
           salvar(STORAGE_KEYS.catalogo, catalogo);
           renderServicos();
         });
@@ -319,9 +522,7 @@ function renderCatalogo() {
       tr.querySelector(".btn-excluir").addEventListener("click", () => {
         if (confirm(`Excluir "${s.nome}"?`)) {
           esp.servicos.splice(idx, 1);
-          delete precosSalvos[`${esp.id}::${idx}`];
           salvar(STORAGE_KEYS.catalogo, catalogo);
-          salvar(STORAGE_KEYS.precos, precosSalvos);
           renderCatalogo();
           renderEspecialidades();
           renderServicos();
@@ -334,7 +535,7 @@ function renderCatalogo() {
 
 document.getElementById("novo-servico").addEventListener("click", () => {
   const nomeEsp = prompt(
-    "Especialidade (digite o nome exato de uma existente, ou um nome novo para criar):",
+    "Especialidade (digite o nome de uma existente, ou um nome novo para criar):",
     catalogo[0].nome
   );
   if (!nomeEsp) return;
@@ -363,14 +564,28 @@ document.getElementById("novo-servico").addEventListener("click", () => {
   renderServicos();
 });
 
+// ============================================================
+// Utilidades
+// ============================================================
 function escapeHtml(s) {
-  return String(s).replace(/[&<>"']/g, (c) => ({
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    '"': "&quot;",
-    "'": "&#39;"
+  return String(s ?? "").replace(/[&<>"']/g, (c) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
   }[c]));
+}
+
+function flash(msg) {
+  const el = document.createElement("div");
+  el.textContent = msg;
+  el.style.cssText = `
+    position: fixed; bottom: 24px; right: 24px;
+    background: var(--accent); color: #1a1a20;
+    padding: 12px 20px; border-radius: 8px;
+    font-weight: 600; font-size: 13px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    z-index: 200; animation: fade 0.2s;
+  `;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 2200);
 }
 
 // ============================================================
@@ -380,3 +595,5 @@ renderEspecialidades();
 renderServicos();
 renderParametros();
 renderCatalogo();
+renderCustosFixos();
+renderHistorico();
