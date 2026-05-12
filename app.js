@@ -6,8 +6,30 @@ const STORAGE_KEYS = {
   catalogo: "dunas.catalogo",
   parametros: "dunas.parametros",
   custosFixos: "dunas.custosFixos",
-  historico: "dunas.historico"
+  historico: "dunas.historico",
+  tema: "dunas.tema"
 };
+
+// ============================================================
+// Tema (claro/escuro)
+// ============================================================
+function aplicarTema(tema) {
+  document.documentElement.setAttribute("data-theme", tema);
+  localStorage.setItem(STORAGE_KEYS.tema, tema);
+  const btn = document.getElementById("theme-toggle");
+  if (btn) btn.title = tema === "dark" ? "Mudar para modo claro" : "Mudar para modo escuro";
+}
+
+(function initTema() {
+  const salvo = localStorage.getItem(STORAGE_KEYS.tema);
+  const prefereClaro = window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches;
+  aplicarTema(salvo || (prefereClaro ? "light" : "dark"));
+})();
+
+document.getElementById("theme-toggle").addEventListener("click", () => {
+  const atual = document.documentElement.getAttribute("data-theme");
+  aplicarTema(atual === "dark" ? "light" : "dark");
+});
 
 // --- Estado em memória ---
 let catalogo = carregar(STORAGE_KEYS.catalogo, CATALOGO_PADRAO);
@@ -575,15 +597,8 @@ function escapeHtml(s) {
 
 function flash(msg) {
   const el = document.createElement("div");
+  el.className = "flash-toast";
   el.textContent = msg;
-  el.style.cssText = `
-    position: fixed; bottom: 24px; right: 24px;
-    background: var(--accent); color: #1a1a20;
-    padding: 12px 20px; border-radius: 8px;
-    font-weight: 600; font-size: 13px;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
-    z-index: 200; animation: fade 0.2s;
-  `;
   document.body.appendChild(el);
   setTimeout(() => el.remove(), 2200);
 }
