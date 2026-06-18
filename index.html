@@ -7,28 +7,84 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <header class="topbar">
-    <div class="brand">
-      <div class="logo">DH</div>
-      <div>
-        <h1>Dunas Health</h1>
-        <p class="subtitle">Sistema de Precificação Odontológica</p>
-      </div>
-    </div>
-    <nav class="tabs">
-      <button class="tab active" data-tab="historico">Histórico</button>
-      <button class="tab" data-tab="precificacao">Precificação</button>
-      <button class="tab" data-tab="custos-fixos">Custos Fixos</button>
-      <button class="tab" data-tab="parametros">Parâmetros</button>
-      <button class="tab" data-tab="catalogo">Catálogo</button>
-      <button class="theme-toggle" id="theme-toggle" title="Alternar tema">
-        <span class="theme-icon-dark">🌙</span>
-        <span class="theme-icon-light">☀️</span>
-      </button>
-    </nav>
-  </header>
 
-  <main>
+  <!-- ====================== TELA DE LOGIN ====================== -->
+  <div class="auth-screen" id="auth-screen">
+    <div class="auth-box">
+      <div class="auth-brand">
+        <div class="logo logo-lg">DH</div>
+        <h1>Dunas Health</h1>
+        <p>Sistema de Precificação Odontológica</p>
+      </div>
+
+      <!-- Formulário de SETUP (primeiro acesso) -->
+      <form class="auth-form" id="form-setup" style="display:none;">
+        <h2>Primeiro acesso</h2>
+        <p class="hint">Configure seu consultório para começar.</p>
+        <label>
+          Nome do consultório
+          <input type="text" id="setup-clinica" required placeholder="Ex.: Clínica Sorriso" />
+        </label>
+        <label>
+          Seu nome
+          <input type="text" id="setup-usuario" required placeholder="Ex.: Dr. João Silva" />
+        </label>
+        <label>
+          Logo do consultório (opcional)
+          <input type="file" id="setup-logo" accept="image/*" />
+        </label>
+        <div id="setup-logo-preview" class="logo-preview-wrap" style="display:none;">
+          <img id="setup-logo-img" alt="prévia da logo" />
+          <button type="button" class="btn-secondary btn-small" id="setup-logo-remove">Remover</button>
+        </div>
+        <label>
+          Senha (opcional)
+          <input type="password" id="setup-senha" placeholder="Deixe em branco para acesso sem senha" />
+        </label>
+        <button type="submit" class="btn-primary btn-full">Entrar no sistema</button>
+      </form>
+
+      <!-- Formulário de LOGIN (acessos seguintes) -->
+      <form class="auth-form" id="form-login" style="display:none;">
+        <h2 id="login-titulo">Bem-vindo de volta</h2>
+        <p class="hint" id="login-subtitulo">Informe sua senha para acessar.</p>
+        <label>
+          Senha
+          <input type="password" id="login-senha" autofocus />
+        </label>
+        <div id="login-erro" class="auth-erro" style="display:none;">Senha incorreta.</div>
+        <button type="submit" class="btn-primary btn-full">Entrar</button>
+        <button type="button" class="btn-link" id="login-reset">Esqueci minha senha — resetar configuração</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ====================== APP PRINCIPAL ====================== -->
+  <div id="app" style="display:none;">
+    <header class="topbar">
+      <div class="brand">
+        <div class="logo" id="logo-clinica">DH</div>
+        <div>
+          <h1 id="brand-titulo">Dunas Health</h1>
+          <p class="subtitle" id="brand-subtitulo">Sistema de Precificação Odontológica</p>
+        </div>
+      </div>
+
+      <nav class="tabs">
+        <button class="tab active" data-tab="historico">Histórico</button>
+        <button class="tab" data-tab="precificacao">Precificação</button>
+        <button class="tab" data-tab="custos-fixos">Custos Fixos</button>
+        <button class="tab" data-tab="parametros">Parâmetros</button>
+        <button class="tab" data-tab="catalogo">Catálogo</button>
+        <button class="theme-toggle" id="theme-toggle" title="Alternar tema">
+          <span class="theme-icon-dark">🌙</span>
+          <span class="theme-icon-light">☀️</span>
+        </button>
+        <button class="theme-toggle" id="btn-logout" title="Sair">↩</button>
+      </nav>
+    </header>
+
+    <main>
     <!-- ====================== TAB: HISTÓRICO ====================== -->
     <section id="historico" class="panel active">
       <div class="card-wide">
@@ -164,7 +220,37 @@
     <!-- ====================== TAB: PARÂMETROS ====================== -->
     <section id="parametros" class="panel">
       <div class="card-wide">
-        <h2>Parâmetros gerais da clínica</h2>
+        <h2>Configuração do consultório</h2>
+        <p class="hint">Identidade visual e dados do estabelecimento.</p>
+
+        <div class="form-grid">
+          <label>
+            Nome do consultório
+            <input type="text" id="p-clinica" />
+          </label>
+          <label>
+            Seu nome (responsável)
+            <input type="text" id="p-usuario" />
+          </label>
+          <label class="logo-upload-label">
+            Logo do consultório
+            <div class="logo-upload">
+              <div class="logo-preview-wrap">
+                <img id="p-logo-img" alt="logo" />
+                <span id="p-logo-vazio">Sem logo</span>
+              </div>
+              <div class="logo-upload-actions">
+                <input type="file" id="p-logo-input" accept="image/*" hidden />
+                <button type="button" class="btn-secondary btn-small" id="p-logo-btn">Trocar logo</button>
+                <button type="button" class="btn-secondary btn-small" id="p-logo-clear">Remover</button>
+              </div>
+            </div>
+          </label>
+        </div>
+
+        <hr style="border:none;border-top:1px solid var(--border);margin:24px 0;" />
+
+        <h2>Parâmetros gerais</h2>
         <p class="hint">
           Estes valores são usados como padrão nas precificações.
           O total de <b>custos fixos</b> vem da aba "Custos Fixos".
@@ -196,6 +282,11 @@
           <label>
             Margem de lucro desejada padrão (%)
             <input type="number" id="p-margem" step="0.1" />
+          </label>
+          <label>
+            Taxa padrão da maquininha (%)
+            <input type="number" id="p-taxa-cartao" step="0.01" />
+            <small>Usada no cálculo de preço sugerido.</small>
           </label>
           <label>
             Desconto máximo permitido (%)
@@ -241,7 +332,8 @@
         </div>
       </div>
     </section>
-  </main>
+    </main>
+  </div>
 
   <!-- ====================== MODAL: precificação ====================== -->
   <div class="modal" id="modal-precificacao">
@@ -274,6 +366,11 @@
             <input type="number" id="m-margem" step="0.1" />
           </label>
           <label>
+            Taxa da maquininha (%)
+            <input type="number" id="m-taxa-cartao" step="0.01" />
+            <small>Forma de pagamento padrão</small>
+          </label>
+          <label>
             Desconto máximo (%)
             <input type="number" id="m-desconto" step="0.1" />
           </label>
@@ -302,9 +399,9 @@
             <small>Preço mínimo que cobre custos + impostos + comissão.</small>
           </div>
           <div class="resultado-linha destaque sucesso">
-            <span>Preço sugerido</span>
+            <span>Preço sugerido (com taxa do cartão)</span>
             <b id="res-sugerido">R$ 0,00</b>
-            <small>Atinge a margem desejada.</small>
+            <small>Considera margem desejada e taxa da maquininha.</small>
           </div>
           <div class="resultado-linha destaque alerta">
             <span>Preço mínimo com desconto máximo</span>
@@ -315,6 +412,23 @@
             <span>Margem efetiva no preço sugerido</span>
             <b id="res-margem-efetiva">0%</b>
           </div>
+        </div>
+
+        <h4 style="margin: 20px 0 8px; color: var(--accent); font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">
+          Preços por forma de pagamento
+        </h4>
+        <div class="tabela-wrapper">
+          <table class="tabela-catalogo" style="font-size: 12px;">
+            <thead>
+              <tr>
+                <th>Forma de pagamento</th>
+                <th style="width: 90px; text-align: right;">Taxa</th>
+                <th style="width: 140px; text-align: right;">Preço final</th>
+                <th style="width: 140px; text-align: right;">Você recebe</th>
+              </tr>
+            </thead>
+            <tbody id="tabela-pagamentos"></tbody>
+          </table>
         </div>
       </div>
       <footer>

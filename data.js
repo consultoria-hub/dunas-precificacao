@@ -189,5 +189,17 @@ const PARAMETROS_PADRAO = {
   impostos: 8.5,         // Simples Nacional ~ 6-15%
   comissao: 35,          // % padrão
   margem: 35,            // margem de lucro desejada
+  taxaCartao: 3.99,      // taxa média maquininha (crédito à vista)
   descontoMax: 10        // desconto máximo permitido
 };
+
+// Formas de pagamento e respectivas taxas padrão (%) — usadas para
+// mostrar o preço final por método de pagamento na tela de precificação.
+const FORMAS_PAGAMENTO_PADRAO = [
+  { nome: "Dinheiro / PIX", taxa: 0 },
+  { nome: "Débito", taxa: 1.99 },
+  { nome: "Crédito à vista", taxa: 3.99 },
+  { nome: "Crédito 3x", taxa: 5.49 },
+  { nome: "Crédito 6x", taxa: 7.99 },
+  { nome: "Crédito 12x", taxa: 12.99 }
+];

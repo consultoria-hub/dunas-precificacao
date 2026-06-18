@@ -639,6 +639,152 @@ main {
 .orc-grid .item span { display: block; font-size: 11px; color: var(--texto-mute); text-transform: uppercase; letter-spacing: 0.5px; }
 .orc-grid .item b { font-size: 14px; color: var(--texto); font-weight: 500; }
 
+/* ===== Tela de Login ===== */
+.auth-screen {
+  position: fixed;
+  inset: 0;
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 200;
+}
+.auth-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 36px 32px;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: var(--sombra);
+}
+.auth-brand {
+  text-align: center;
+  margin-bottom: 28px;
+}
+.auth-brand h1 {
+  margin-top: 14px;
+  font-size: 22px;
+  color: var(--accent);
+}
+.auth-brand p {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--texto-claro);
+}
+.logo-lg {
+  width: 64px;
+  height: 64px;
+  font-size: 24px;
+  border-radius: 14px;
+  margin: 0 auto;
+}
+.auth-form h2 {
+  font-size: 16px;
+  color: var(--texto);
+  margin-bottom: 4px;
+  font-weight: 600;
+}
+.auth-form .hint { margin-bottom: 18px; }
+.auth-form label {
+  display: flex;
+  flex-direction: column;
+  font-size: 12px;
+  color: var(--texto-claro);
+  font-weight: 500;
+  gap: 4px;
+  margin-bottom: 14px;
+}
+.auth-form input[type="text"],
+.auth-form input[type="password"],
+.auth-form input[type="file"] {
+  padding: 10px 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 14px;
+  outline: none;
+  color: var(--texto);
+  font-family: inherit;
+  transition: all 0.15s;
+}
+.auth-form input:focus { border-color: var(--accent); background: var(--surface-3); }
+.btn-full { width: 100%; padding: 12px; font-size: 14px; margin-top: 8px; }
+.btn-link {
+  background: none;
+  border: none;
+  color: var(--texto-claro);
+  text-decoration: underline;
+  cursor: pointer;
+  font-size: 12px;
+  margin-top: 12px;
+  padding: 6px;
+  width: 100%;
+  font-family: inherit;
+}
+.btn-link:hover { color: var(--accent); }
+.auth-erro {
+  background: var(--erro-soft);
+  color: var(--erro);
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  margin-bottom: 12px;
+  border: 1px solid var(--erro);
+}
+
+/* ===== Logo upload ===== */
+.logo-upload-label { grid-column: 1 / -1; }
+.logo-upload {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  padding: 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.logo-preview-wrap {
+  width: 72px;
+  height: 72px;
+  border-radius: 10px;
+  background: var(--surface-3);
+  border: 1px dashed var(--border-strong);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+  position: relative;
+}
+.logo-preview-wrap img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+.logo-preview-wrap span {
+  font-size: 11px;
+  color: var(--texto-mute);
+}
+#setup-logo-preview {
+  display: flex !important;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.logo-upload-actions { display: flex; flex-direction: column; gap: 6px; }
+.btn-small { padding: 6px 12px; font-size: 12px; }
+
+/* Quando a clínica tem logo, o logo da topbar mostra a imagem em vez do texto */
+.logo.has-img { background: transparent; box-shadow: none; padding: 2px; overflow: hidden; }
+.logo.has-img span { display: none; }
+.logo.has-img img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
 /* ===== Theme toggle ===== */
 .theme-toggle {
   margin-left: 10px;

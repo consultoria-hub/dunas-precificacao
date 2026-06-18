@@ -7,7 +7,8 @@ const STORAGE_KEYS = {
   parametros: "dunas.parametros",
   custosFixos: "dunas.custosFixos",
   historico: "dunas.historico",
-  tema: "dunas.tema"
+  tema: "dunas.tema",
+  conta: "dunas.conta"   // { clinicaNome, usuarioNome, senha, logoBase64 }
 };
 
 // ============================================================
@@ -87,23 +88,25 @@ function custoHoraCadeira() {
   return total > 0 ? totalCustosFixos() / total : 0;
 }
 
-function calcularPreco({ tempo, custoDireto, comissao, margem, descontoMax, impostos }) {
+function calcularPreco({ tempo, custoDireto, comissao, margem, descontoMax, impostos, taxaCartao = 0 }) {
   const horaCadeira = custoHoraCadeira();
   const custoFixoAlocado = (tempo / 60) * horaCadeira;
   const custoTotal = custoFixoAlocado + custoDireto;
 
+  // Carga (% sobre o preço): impostos + comissão (+ taxa do cartão para o sugerido)
   const cargaEquilibrio = (impostos + comissao) / 100;
-  const cargaSugerido = (impostos + comissao + margem) / 100;
+  const cargaSugerido = (impostos + comissao + margem + taxaCartao) / 100;
 
   const equilibrio = cargaEquilibrio < 1 ? custoTotal / (1 - cargaEquilibrio) : 0;
   const sugerido = cargaSugerido < 1 ? custoTotal / (1 - cargaSugerido) : 0;
   const minimo = sugerido * (1 - descontoMax / 100);
 
+  // Margem efetiva: receita - custos - impostos - comissão - taxa cartão
   const margemEfetiva = sugerido > 0
-    ? ((sugerido - custoTotal - sugerido * (impostos + comissao) / 100) / sugerido) * 100
+    ? ((sugerido - custoTotal - sugerido * (impostos + comissao + taxaCartao) / 100) / sugerido) * 100
     : 0;
 
-  return { horaCadeira, custoFixoAlocado, custoTotal, equilibrio, sugerido, minimo, margemEfetiva };
+  return { horaCadeira, custoFixoAlocado, custoTotal, equilibrio, sugerido, minimo, margemEfetiva, taxaCartao };
 }
 
 // ============================================================
@@ -329,6 +332,7 @@ function abrirModal(espId, idx) {
   document.getElementById("m-custo-direto").value = servico.custoDireto;
   document.getElementById("m-comissao").value = servico.comissao ?? parametros.comissao;
   document.getElementById("m-margem").value = parametros.margem;
+  document.getElementById("m-taxa-cartao").value = parametros.taxaCartao ?? 0;
   document.getElementById("m-desconto").value = parametros.descontoMax;
   document.getElementById("m-impostos").value = parametros.impostos;
 
@@ -364,6 +368,7 @@ function lerInputsModal() {
     custoDireto: parseFloat(document.getElementById("m-custo-direto").value) || 0,
     comissao: parseFloat(document.getElementById("m-comissao").value) || 0,
     margem: parseFloat(document.getElementById("m-margem").value) || 0,
+    taxaCartao: parseFloat(document.getElementById("m-taxa-cartao").value) || 0,
     descontoMax: parseFloat(document.getElementById("m-desconto").value) || 0,
     impostos: parseFloat(document.getElementById("m-impostos").value) || 0
   };
@@ -380,9 +385,33 @@ function atualizarCalculo() {
   document.getElementById("res-sugerido").textContent = fmt(r.sugerido);
   document.getElementById("res-minimo").textContent = fmt(r.minimo);
   document.getElementById("res-margem-efetiva").textContent = fmtPct(r.margemEfetiva);
+
+  renderTabelaPagamentos(inputs, r);
 }
 
-["m-tempo", "m-custo-direto", "m-comissao", "m-margem", "m-desconto", "m-impostos"].forEach(
+function renderTabelaPagamentos(inputs, r) {
+  const tbody = document.getElementById("tabela-pagamentos");
+  tbody.innerHTML = "";
+
+  // Para cada forma de pagamento, calculamos o preço final que mantém
+  // a mesma margem desejada considerando a taxa específica da maquininha.
+  FORMAS_PAGAMENTO_PADRAO.forEach(forma => {
+    const semCartao = { ...inputs, taxaCartao: forma.taxa };
+    const calc = calcularPreco(semCartao);
+    const recebido = calc.sugerido * (1 - forma.taxa / 100);
+
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${escapeHtml(forma.nome)}</td>
+      <td style="text-align: right; color: var(--texto-claro);">${fmtPct(forma.taxa)}</td>
+      <td style="text-align: right; font-weight: 600; color: var(--accent);">${fmt(calc.sugerido)}</td>
+      <td style="text-align: right; color: var(--texto-claro);">${fmt(recebido)}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+["m-tempo", "m-custo-direto", "m-comissao", "m-margem", "m-taxa-cartao", "m-desconto", "m-impostos"].forEach(
   (id) => document.getElementById(id).addEventListener("input", atualizarCalculo)
 );
 
@@ -481,14 +510,31 @@ document.getElementById("novo-custo").addEventListener("click", () => {
 // ============================================================
 function renderParametros() {
   parametros.custosFixos = totalCustosFixos();
+  document.getElementById("p-clinica").value = conta.clinicaNome || "";
+  document.getElementById("p-usuario").value = conta.usuarioNome || "";
   document.getElementById("p-custos-fixos").value = parametros.custosFixos.toFixed(2);
   document.getElementById("p-cadeiras").value = parametros.cadeiras;
   document.getElementById("p-horas-mes").value = parametros.horasMes;
   document.getElementById("p-impostos").value = parametros.impostos;
   document.getElementById("p-comissao").value = parametros.comissao;
   document.getElementById("p-margem").value = parametros.margem;
+  document.getElementById("p-taxa-cartao").value = parametros.taxaCartao ?? 0;
   document.getElementById("p-desconto-max").value = parametros.descontoMax;
   document.getElementById("r-hora-cadeira").textContent = fmt(custoHoraCadeira());
+  renderLogoPreview();
+}
+
+function renderLogoPreview() {
+  const img = document.getElementById("p-logo-img");
+  const vazio = document.getElementById("p-logo-vazio");
+  if (conta.logoBase64) {
+    img.src = conta.logoBase64;
+    img.style.display = "block";
+    vazio.style.display = "none";
+  } else {
+    img.style.display = "none";
+    vazio.style.display = "block";
+  }
 }
 
 ["p-cadeiras", "p-horas-mes"].forEach((id) =>
@@ -508,10 +554,15 @@ document.getElementById("salvar-parametros").addEventListener("click", () => {
     impostos: parseFloat(document.getElementById("p-impostos").value) || 0,
     comissao: parseFloat(document.getElementById("p-comissao").value) || 0,
     margem: parseFloat(document.getElementById("p-margem").value) || 0,
+    taxaCartao: parseFloat(document.getElementById("p-taxa-cartao").value) || 0,
     descontoMax: parseFloat(document.getElementById("p-desconto-max").value) || 0
   };
+  conta.clinicaNome = document.getElementById("p-clinica").value.trim() || conta.clinicaNome;
+  conta.usuarioNome = document.getElementById("p-usuario").value.trim() || conta.usuarioNome;
   salvar(STORAGE_KEYS.parametros, parametros);
+  salvar(STORAGE_KEYS.conta, conta);
   renderParametros();
+  aplicarBranding();
   flash("Parâmetros salvos com sucesso");
 });
 
@@ -595,20 +646,161 @@ function escapeHtml(s) {
   }[c]));
 }
 
-function flash(msg) {
+function flash(msg, duracao = 2200) {
   const el = document.createElement("div");
   el.className = "flash-toast";
   el.textContent = msg;
   document.body.appendChild(el);
-  setTimeout(() => el.remove(), 2200);
+  setTimeout(() => el.remove(), duracao);
 }
+
+// ============================================================
+// AUTENTICAÇÃO / SETUP
+// ============================================================
+let conta = carregar(STORAGE_KEYS.conta, null);
+
+function temConta() {
+  return conta && conta.clinicaNome && conta.usuarioNome;
+}
+
+function mostrarAuth() {
+  document.getElementById("auth-screen").style.display = "flex";
+  document.getElementById("app").style.display = "none";
+
+  if (temConta()) {
+    document.getElementById("form-setup").style.display = "none";
+    document.getElementById("form-login").style.display = "block";
+    const titulo = document.getElementById("login-titulo");
+    const subtitulo = document.getElementById("login-subtitulo");
+    titulo.textContent = `Bem-vindo de volta, ${conta.usuarioNome.split(" ")[0]}`;
+    if (conta.senha) {
+      subtitulo.textContent = `Informe sua senha para acessar ${conta.clinicaNome}.`;
+      document.getElementById("login-senha").parentElement.style.display = "flex";
+      document.getElementById("login-senha").focus();
+    } else {
+      subtitulo.textContent = `Clique em entrar para acessar ${conta.clinicaNome}.`;
+      document.getElementById("login-senha").parentElement.style.display = "none";
+    }
+  } else {
+    document.getElementById("form-setup").style.display = "block";
+    document.getElementById("form-login").style.display = "none";
+  }
+}
+
+function entrarNoApp() {
+  document.getElementById("auth-screen").style.display = "none";
+  document.getElementById("app").style.display = "block";
+  aplicarBranding();
+  renderEspecialidades();
+  renderServicos();
+  renderParametros();
+  renderCatalogo();
+  renderCustosFixos();
+  renderHistorico();
+  const primeiroNome = conta.usuarioNome.split(" ")[0];
+  flash(`Bem-vindo(a), ${primeiroNome}! 👋`, 3500);
+}
+
+function aplicarBranding() {
+  if (!conta) return;
+  document.getElementById("brand-titulo").textContent = conta.clinicaNome || "Dunas Health";
+  document.getElementById("brand-subtitulo").textContent = `Olá, ${conta.usuarioNome || ""} · Powered by Dunas Health`;
+  const logoEl = document.getElementById("logo-clinica");
+  if (conta.logoBase64) {
+    logoEl.classList.add("has-img");
+    logoEl.innerHTML = `<img src="${conta.logoBase64}" alt="logo" />`;
+  } else {
+    logoEl.classList.remove("has-img");
+    logoEl.textContent = (conta.clinicaNome || "DH").split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
+  }
+}
+
+// Upload de logo em formato base64
+function lerArquivoComoBase64(file) {
+  return new Promise((resolve, reject) => {
+    const fr = new FileReader();
+    fr.onload = () => resolve(fr.result);
+    fr.onerror = reject;
+    fr.readAsDataURL(file);
+  });
+}
+
+// --- SETUP ---
+let setupLogoBase64 = null;
+document.getElementById("setup-logo").addEventListener("change", async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  setupLogoBase64 = await lerArquivoComoBase64(file);
+  document.getElementById("setup-logo-img").src = setupLogoBase64;
+  document.getElementById("setup-logo-preview").style.display = "flex";
+});
+document.getElementById("setup-logo-remove").addEventListener("click", () => {
+  setupLogoBase64 = null;
+  document.getElementById("setup-logo").value = "";
+  document.getElementById("setup-logo-preview").style.display = "none";
+});
+
+document.getElementById("form-setup").addEventListener("submit", (e) => {
+  e.preventDefault();
+  conta = {
+    clinicaNome: document.getElementById("setup-clinica").value.trim(),
+    usuarioNome: document.getElementById("setup-usuario").value.trim(),
+    senha: document.getElementById("setup-senha").value || null,
+    logoBase64: setupLogoBase64
+  };
+  salvar(STORAGE_KEYS.conta, conta);
+  entrarNoApp();
+});
+
+// --- LOGIN ---
+document.getElementById("form-login").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const erroEl = document.getElementById("login-erro");
+  erroEl.style.display = "none";
+  if (conta.senha) {
+    const tentativa = document.getElementById("login-senha").value;
+    if (tentativa !== conta.senha) {
+      erroEl.style.display = "block";
+      return;
+    }
+  }
+  document.getElementById("login-senha").value = "";
+  entrarNoApp();
+});
+
+document.getElementById("login-reset").addEventListener("click", () => {
+  if (!confirm("Resetar configuração? Isso vai apagar a conta, mas mantém seus orçamentos, catálogo e custos fixos.")) return;
+  localStorage.removeItem(STORAGE_KEYS.conta);
+  conta = null;
+  mostrarAuth();
+});
+
+document.getElementById("btn-logout").addEventListener("click", () => {
+  flash("Você saiu do sistema");
+  mostrarAuth();
+});
+
+// --- UPLOAD DE LOGO NA ABA PARÂMETROS ---
+document.getElementById("p-logo-btn").addEventListener("click", () => {
+  document.getElementById("p-logo-input").click();
+});
+document.getElementById("p-logo-input").addEventListener("change", async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  conta.logoBase64 = await lerArquivoComoBase64(file);
+  salvar(STORAGE_KEYS.conta, conta);
+  renderLogoPreview();
+  aplicarBranding();
+  flash("Logo atualizada");
+});
+document.getElementById("p-logo-clear").addEventListener("click", () => {
+  conta.logoBase64 = null;
+  salvar(STORAGE_KEYS.conta, conta);
+  renderLogoPreview();
+  aplicarBranding();
+});
 
 // ============================================================
 // Boot
 // ============================================================
-renderEspecialidades();
-renderServicos();
-renderParametros();
-renderCatalogo();
-renderCustosFixos();
-renderHistorico();
+mostrarAuth();
