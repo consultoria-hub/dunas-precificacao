@@ -33,15 +33,20 @@
           Logo do consultório (opcional)
           <input type="file" id="setup-logo" accept="image/*" />
         </label>
-        <div id="setup-logo-preview" class="logo-preview-wrap" style="display:none;">
-          <img id="setup-logo-img" alt="prévia da logo" />
+        <div id="setup-logo-preview" style="display:none;">
+          <div class="logo-preview-wrap"><img id="setup-logo-img" alt="prévia da logo" /></div>
           <button type="button" class="btn-secondary btn-small" id="setup-logo-remove">Remover</button>
         </div>
         <label>
-          Senha (opcional)
-          <input type="password" id="setup-senha" placeholder="Deixe em branco para acesso sem senha" />
+          Senha
+          <input type="password" id="setup-senha" required minlength="4" placeholder="Mínimo 4 caracteres" />
         </label>
-        <button type="submit" class="btn-primary btn-full">Entrar no sistema</button>
+        <label>
+          Confirmar senha
+          <input type="password" id="setup-senha2" required minlength="4" placeholder="Repita a senha" />
+        </label>
+        <div id="setup-erro" class="auth-erro" style="display:none;"></div>
+        <button type="submit" class="btn-primary btn-full">Criar conta e entrar</button>
       </form>
 
       <!-- Formulário de LOGIN (acessos seguintes) -->

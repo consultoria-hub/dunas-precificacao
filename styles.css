@@ -85,7 +85,14 @@ h1, h2, h3, h4 { margin: 0; color: var(--texto); }
 
 body { transition: background 0.2s, color 0.2s; }
 
-.brand { display: flex; align-items: center; gap: 14px; }
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+  max-width: 40%;
+}
+.brand > div:last-child { min-width: 0; }
 
 .logo {
   width: 44px;
@@ -102,8 +109,22 @@ body { transition: background 0.2s, color 0.2s; }
   box-shadow: 0 4px 12px rgba(160, 117, 21, 0.18);
 }
 
-.brand h1 { font-size: 20px; font-weight: 700; letter-spacing: -0.2px; }
-.subtitle { margin: 2px 0 0; font-size: 12px; color: var(--texto-claro); }
+.brand h1 {
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: -0.2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.subtitle {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--texto-claro);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
 .tabs { display: flex; gap: 4px; }
 
@@ -645,19 +666,21 @@ main {
   inset: 0;
   background: var(--bg);
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
-  padding: 20px;
+  padding: 32px 20px;
   z-index: 200;
+  overflow-y: auto;
 }
 .auth-box {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 16px;
-  padding: 36px 32px;
+  padding: 32px 28px;
   width: 100%;
   max-width: 420px;
   box-shadow: var(--sombra);
+  margin: auto;
 }
 .auth-brand {
   text-align: center;
@@ -768,11 +791,11 @@ main {
   color: var(--texto-mute);
 }
 #setup-logo-preview {
-  display: flex !important;
   align-items: center;
   gap: 12px;
   margin-bottom: 14px;
 }
+#setup-logo-preview .logo-preview-wrap { margin-bottom: 0; }
 .logo-upload-actions { display: flex; flex-direction: column; gap: 6px; }
 .btn-small { padding: 6px 12px; font-size: 12px; }
 

@@ -660,7 +660,7 @@ function flash(msg, duracao = 2200) {
 let conta = carregar(STORAGE_KEYS.conta, null);
 
 function temConta() {
-  return conta && conta.clinicaNome && conta.usuarioNome;
+  return conta && conta.clinicaNome && conta.usuarioNome && conta.senha;
 }
 
 function mostrarAuth() {
@@ -673,14 +673,8 @@ function mostrarAuth() {
     const titulo = document.getElementById("login-titulo");
     const subtitulo = document.getElementById("login-subtitulo");
     titulo.textContent = `Bem-vindo de volta, ${conta.usuarioNome.split(" ")[0]}`;
-    if (conta.senha) {
-      subtitulo.textContent = `Informe sua senha para acessar ${conta.clinicaNome}.`;
-      document.getElementById("login-senha").parentElement.style.display = "flex";
-      document.getElementById("login-senha").focus();
-    } else {
-      subtitulo.textContent = `Clique em entrar para acessar ${conta.clinicaNome}.`;
-      document.getElementById("login-senha").parentElement.style.display = "none";
-    }
+    subtitulo.textContent = `Informe sua senha para acessar ${conta.clinicaNome}.`;
+    setTimeout(() => document.getElementById("login-senha").focus(), 50);
   } else {
     document.getElementById("form-setup").style.display = "block";
     document.getElementById("form-login").style.display = "none";
@@ -704,7 +698,7 @@ function entrarNoApp() {
 function aplicarBranding() {
   if (!conta) return;
   document.getElementById("brand-titulo").textContent = conta.clinicaNome || "Dunas Health";
-  document.getElementById("brand-subtitulo").textContent = `Olá, ${conta.usuarioNome || ""} · Powered by Dunas Health`;
+  document.getElementById("brand-subtitulo").textContent = `Olá, ${conta.usuarioNome || ""}`;
   const logoEl = document.getElementById("logo-clinica");
   if (conta.logoBase64) {
     logoEl.classList.add("has-img");
@@ -742,12 +736,31 @@ document.getElementById("setup-logo-remove").addEventListener("click", () => {
 
 document.getElementById("form-setup").addEventListener("submit", (e) => {
   e.preventDefault();
-  conta = {
-    clinicaNome: document.getElementById("setup-clinica").value.trim(),
-    usuarioNome: document.getElementById("setup-usuario").value.trim(),
-    senha: document.getElementById("setup-senha").value || null,
-    logoBase64: setupLogoBase64
-  };
+  const erroEl = document.getElementById("setup-erro");
+  erroEl.style.display = "none";
+
+  const clinicaNome = document.getElementById("setup-clinica").value.trim();
+  const usuarioNome = document.getElementById("setup-usuario").value.trim();
+  const senha = document.getElementById("setup-senha").value;
+  const senha2 = document.getElementById("setup-senha2").value;
+
+  if (!clinicaNome || !usuarioNome) {
+    erroEl.textContent = "Preencha o nome do consultório e o seu nome.";
+    erroEl.style.display = "block";
+    return;
+  }
+  if (senha.length < 4) {
+    erroEl.textContent = "A senha deve ter pelo menos 4 caracteres.";
+    erroEl.style.display = "block";
+    return;
+  }
+  if (senha !== senha2) {
+    erroEl.textContent = "As senhas não coincidem.";
+    erroEl.style.display = "block";
+    return;
+  }
+
+  conta = { clinicaNome, usuarioNome, senha, logoBase64: setupLogoBase64 };
   salvar(STORAGE_KEYS.conta, conta);
   entrarNoApp();
 });
@@ -757,12 +770,10 @@ document.getElementById("form-login").addEventListener("submit", (e) => {
   e.preventDefault();
   const erroEl = document.getElementById("login-erro");
   erroEl.style.display = "none";
-  if (conta.senha) {
-    const tentativa = document.getElementById("login-senha").value;
-    if (tentativa !== conta.senha) {
-      erroEl.style.display = "block";
-      return;
-    }
+  const tentativa = document.getElementById("login-senha").value;
+  if (tentativa !== conta.senha) {
+    erroEl.style.display = "block";
+    return;
   }
   document.getElementById("login-senha").value = "";
   entrarNoApp();
