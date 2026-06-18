@@ -4,66 +4,107 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Dunas Health — Precificação Odontológica</title>
-  <link rel="stylesheet" href="styles.css?v=4" />
+  <link rel="stylesheet" href="styles.css?v=5" />
 </head>
 <body>
 
   <!-- ====================== TELA DE LOGIN ====================== -->
   <div class="auth-screen" id="auth-screen">
-   <div class="auth-screen-inner">
-    <div class="auth-box">
-      <div class="auth-brand">
-        <div class="logo logo-lg">DH</div>
-        <h1>Dunas Health</h1>
-        <p>Sistema de Precificação Odontológica</p>
-      </div>
 
-      <!-- Formulário de SETUP (primeiro acesso) -->
-      <form class="auth-form" id="form-setup" style="display:none;">
-        <h2>Primeiro acesso</h2>
-        <p class="hint">Configure seu consultório para começar.</p>
-        <label>
-          Nome do consultório
-          <input type="text" id="setup-clinica" required placeholder="Ex.: Clínica Sorriso" />
-        </label>
-        <label>
-          Seu nome
-          <input type="text" id="setup-usuario" required placeholder="Ex.: Dr. João Silva" />
-        </label>
-        <label>
-          Logo do consultório (opcional)
-          <input type="file" id="setup-logo" accept="image/*" />
-        </label>
-        <div id="setup-logo-preview">
-          <div class="logo-preview-wrap"><img id="setup-logo-img" alt="" /></div>
-          <button type="button" class="btn-secondary btn-small" id="setup-logo-remove">Remover</button>
+    <!-- Lado esquerdo: identidade / hero -->
+    <aside class="auth-hero">
+      <svg class="auth-hero-bg" viewBox="0 0 600 600" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <defs>
+          <radialGradient id="g1" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#ffffff" stop-opacity="0.18"/>
+            <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+          </radialGradient>
+        </defs>
+        <circle cx="120" cy="120" r="180" fill="url(#g1)"/>
+        <circle cx="520" cy="480" r="220" fill="url(#g1)"/>
+      </svg>
+
+      <svg class="auth-hero-tooth" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path d="M50 8 C32 8, 18 22, 18 42 C18 54, 21 64, 25 74 C29 84, 33 92, 39 92 C45 92, 46 82, 47 72 C48 62, 48 56, 50 56 C52 56, 52 62, 53 72 C54 82, 55 92, 61 92 C67 92, 71 84, 75 74 C79 64, 82 54, 82 42 C82 22, 68 8, 50 8 Z"
+              fill="currentColor" opacity="0.08"/>
+      </svg>
+
+      <div class="auth-hero-content">
+        <div class="hero-brand">
+          <div class="logo logo-lg">DH</div>
+          <div>
+            <h1>Dunas Health</h1>
+            <p>Sistema de Precificação Odontológica</p>
+          </div>
         </div>
-        <label>
-          Senha
-          <input type="password" id="setup-senha" required minlength="4" placeholder="Mínimo 4 caracteres" />
-        </label>
-        <label>
-          Confirmar senha
-          <input type="password" id="setup-senha2" required minlength="4" placeholder="Repita a senha" />
-        </label>
-        <div id="setup-erro" class="auth-erro" style="display:none;"></div>
-        <button type="submit" class="btn-primary btn-full">Criar conta e entrar</button>
-      </form>
 
-      <!-- Formulário de LOGIN (acessos seguintes) -->
-      <form class="auth-form" id="form-login" style="display:none;">
-        <h2 id="login-titulo">Bem-vindo de volta</h2>
-        <p class="hint" id="login-subtitulo">Informe sua senha para acessar.</p>
-        <label>
-          Senha
-          <input type="password" id="login-senha" autofocus />
-        </label>
-        <div id="login-erro" class="auth-erro" style="display:none;">Senha incorreta.</div>
-        <button type="submit" class="btn-primary btn-full">Entrar</button>
-        <button type="button" class="btn-link" id="login-reset">Esqueci minha senha — resetar configuração</button>
-      </form>
-    </div>
-   </div>
+        <div class="hero-tagline">
+          <h2>Precificação inteligente para a sua clínica.</h2>
+          <p>Defina margem, calcule ponto de equilíbrio e gerencie orçamentos em um único lugar.</p>
+        </div>
+
+        <ul class="hero-features">
+          <li><span>✓</span> Cálculo automático de hora-cadeira</li>
+          <li><span>✓</span> Margem, impostos e taxa do cartão</li>
+          <li><span>✓</span> Histórico com status de aprovação</li>
+          <li><span>✓</span> Composição detalhada de custos fixos</li>
+        </ul>
+
+        <p class="hero-footer">© Dunas Health — Soluções para odontologia</p>
+      </div>
+    </aside>
+
+    <!-- Lado direito: formulário -->
+    <main class="auth-form-side">
+      <div class="auth-form-wrap">
+
+        <!-- Formulário de SETUP (primeiro acesso) -->
+        <form class="auth-form" id="form-setup" style="display:none;">
+          <h2>Primeiro acesso</h2>
+          <p class="hint">Configure seu consultório para começar.</p>
+          <label>
+            Nome do consultório
+            <input type="text" id="setup-clinica" required placeholder="Ex.: Clínica Sorriso" />
+          </label>
+          <label>
+            Seu nome
+            <input type="text" id="setup-usuario" required placeholder="Ex.: Dr. João Silva" />
+          </label>
+          <label>
+            Logo do consultório (opcional)
+            <input type="file" id="setup-logo" accept="image/*" />
+          </label>
+          <div id="setup-logo-preview">
+            <div class="logo-preview-wrap"><img id="setup-logo-img" alt="" /></div>
+            <button type="button" class="btn-secondary btn-small" id="setup-logo-remove">Remover</button>
+          </div>
+          <label>
+            Senha
+            <input type="password" id="setup-senha" required minlength="4" placeholder="Mínimo 4 caracteres" />
+          </label>
+          <label>
+            Confirmar senha
+            <input type="password" id="setup-senha2" required minlength="4" placeholder="Repita a senha" />
+          </label>
+          <div id="setup-erro" class="auth-erro" style="display:none;"></div>
+          <button type="submit" class="btn-primary btn-full">Criar conta e entrar</button>
+        </form>
+
+        <!-- Formulário de LOGIN (acessos seguintes) -->
+        <form class="auth-form" id="form-login" style="display:none;">
+          <h2 id="login-titulo">Bem-vindo de volta</h2>
+          <p class="hint" id="login-subtitulo">Informe sua senha para acessar.</p>
+          <label>
+            Senha
+            <input type="password" id="login-senha" autofocus />
+          </label>
+          <div id="login-erro" class="auth-erro" style="display:none;">Senha incorreta.</div>
+          <button type="submit" class="btn-primary btn-full">Entrar</button>
+          <button type="button" class="btn-link" id="login-reset">Esqueci minha senha — resetar configuração</button>
+        </form>
+
+      </div>
+    </main>
   </div>
 
   <!-- ====================== APP PRINCIPAL ====================== -->
@@ -464,7 +505,7 @@
     </div>
   </div>
 
-  <script src="data.js?v=4"></script>
-  <script src="app.js?v=4"></script>
+  <script src="data.js?v=5"></script>
+  <script src="app.js?v=5"></script>
 </body>
 </html>

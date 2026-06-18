@@ -660,70 +660,153 @@ main {
 .orc-grid .item span { display: block; font-size: 11px; color: var(--texto-mute); text-transform: uppercase; letter-spacing: 0.5px; }
 .orc-grid .item b { font-size: 14px; color: var(--texto); font-weight: 500; }
 
-/* ===== Tela de Login ===== */
+/* ===== Tela de Login (split-screen) ===== */
 .auth-screen {
   position: fixed;
   inset: 0;
+  display: flex;
   background: var(--bg);
   z-index: 200;
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: hidden;
 }
-.auth-screen-inner {
-  min-height: 100%;
+
+/* --- Lado esquerdo: hero --- */
+.auth-hero {
+  flex: 1.1;
+  position: relative;
+  background:
+    radial-gradient(ellipse at top left, rgba(255,255,255,0.10), transparent 60%),
+    linear-gradient(135deg, #b4862a 0%, #8a6118 55%, #3f2c0a 100%);
+  color: #fff;
+  padding: 56px 56px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+  min-width: 0;
+}
+.auth-hero-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.auth-hero-tooth {
+  position: absolute;
+  width: 480px;
+  height: 480px;
+  right: -100px;
+  bottom: -100px;
+  color: #fff;
+  pointer-events: none;
+}
+.auth-hero-content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 36px;
+  max-width: 460px;
+}
+.hero-brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.hero-brand h1 {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.2px;
+  color: #fff;
+}
+.hero-brand p {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.75);
+}
+.hero-brand .logo-lg {
+  background: #fff;
+  color: var(--accent);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.18);
+}
+.hero-tagline h2 {
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1.15;
+  color: #fff;
+  letter-spacing: -0.5px;
+}
+.hero-tagline p {
+  margin: 14px 0 0;
+  font-size: 15px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.82);
+}
+.hero-features {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.hero-features li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.92);
+}
+.hero-features li span {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.18);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.hero-footer {
+  margin: 0;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.55);
+  position: relative;
+  z-index: 1;
+}
+
+/* --- Lado direito: formulário --- */
+.auth-form-side {
+  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 32px 16px;
-  box-sizing: border-box;
-}
-.auth-box {
+  padding: 32px 32px;
+  overflow-y: auto;
   background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  padding: 32px 28px;
+  min-width: 0;
+}
+.auth-form-wrap {
   width: 100%;
-  max-width: 400px;
-  box-shadow: var(--sombra);
-  box-sizing: border-box;
-  position: relative;
-  overflow: hidden;
-}
-.auth-box::before {
-  content: "";
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 4px;
-  background: linear-gradient(90deg, var(--accent) 0%, var(--accent-2) 100%);
-}
-.auth-brand {
-  text-align: center;
-  margin-bottom: 22px;
-}
-.auth-brand h1 {
-  margin-top: 12px;
-  font-size: 20px;
-  color: var(--accent);
-}
-.auth-brand p {
-  margin: 4px 0 0;
-  font-size: 12px;
-  color: var(--texto-claro);
+  max-width: 380px;
 }
 .logo-lg {
   width: 56px;
   height: 56px;
   font-size: 22px;
   border-radius: 12px;
-  margin: 0 auto;
 }
 .auth-form h2 {
-  font-size: 16px;
+  font-size: 24px;
   color: var(--texto);
-  margin-bottom: 4px;
-  font-weight: 600;
+  margin-bottom: 6px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
 }
-.auth-form .hint { margin-bottom: 18px; }
+.auth-form .hint { margin-bottom: 24px; font-size: 14px; }
 .auth-form label {
   display: flex;
   flex-direction: column;
@@ -877,6 +960,28 @@ main {
   font-size: 13px;
   box-shadow: var(--sombra);
   z-index: 200;
+}
+
+@media (max-width: 980px) {
+  .auth-screen {
+    flex-direction: column;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+  .auth-hero {
+    flex: 0 0 auto;
+    padding: 36px 28px;
+  }
+  .auth-hero-content { gap: 22px; max-width: none; }
+  .hero-tagline h2 { font-size: 24px; }
+  .hero-tagline p { font-size: 14px; }
+  .hero-features { display: none; }
+  .hero-footer { display: none; }
+  .auth-hero-tooth { width: 280px; height: 280px; right: -60px; bottom: -60px; opacity: 0.6; }
+  .auth-form-side {
+    flex: 1 1 auto;
+    padding: 32px 24px;
+  }
 }
 
 @media (max-width: 880px) {
