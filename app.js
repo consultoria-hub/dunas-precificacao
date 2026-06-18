@@ -726,12 +726,13 @@ document.getElementById("setup-logo").addEventListener("change", async (e) => {
   if (!file) return;
   setupLogoBase64 = await lerArquivoComoBase64(file);
   document.getElementById("setup-logo-img").src = setupLogoBase64;
-  document.getElementById("setup-logo-preview").style.display = "flex";
+  document.getElementById("setup-logo-preview").classList.add("show");
 });
 document.getElementById("setup-logo-remove").addEventListener("click", () => {
   setupLogoBase64 = null;
   document.getElementById("setup-logo").value = "";
-  document.getElementById("setup-logo-preview").style.display = "none";
+  document.getElementById("setup-logo-img").src = "";
+  document.getElementById("setup-logo-preview").classList.remove("show");
 });
 
 document.getElementById("form-setup").addEventListener("submit", (e) => {

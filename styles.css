@@ -792,9 +792,13 @@ main {
   color: var(--texto-mute);
 }
 #setup-logo-preview {
+  display: none;
   align-items: center;
   gap: 12px;
   margin-bottom: 12px;
+}
+#setup-logo-preview.show {
+  display: flex;
 }
 #setup-logo-preview .logo-preview-wrap {
   width: 56px;
