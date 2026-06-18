@@ -230,3 +230,21 @@ const STATUS_AGENDA = {
   cancelado: { label: "Cancelado", cor: "erro" },
   faltou: { label: "Faltou", cor: "alerta" }
 };
+
+// Estágios do Kanban do CRM
+const KANBAN_COLUNAS = [
+  { id: "novo", label: "Novo / Lead", classe: "kanban-col-novo" },
+  { id: "ativo", label: "Em atendimento", classe: "kanban-col-ativo" },
+  { id: "retorno", label: "Aguardando retorno", classe: "kanban-col-retorno" },
+  { id: "inativo", label: "Inativo", classe: "kanban-col-inativo" }
+];
+
+// Metas comerciais padrão (exemplos)
+const METAS_PADRAO = [];
+
+const TIPOS_META = {
+  receita: { label: "Receita executada", unidade: "R$", formato: "moeda" },
+  pacientes: { label: "Novos pacientes", unidade: "", formato: "num" },
+  procedimentos: { label: "Procedimentos realizados", unidade: "", formato: "num" },
+  orcamentos: { label: "Orçamentos aprovados", unidade: "", formato: "num" }
+};

@@ -962,6 +962,443 @@ main {
   z-index: 200;
 }
 
+/* ===== Ícones SVG (Lucide-style) ===== */
+.ic {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+  flex-shrink: 0;
+}
+.ic-sm { width: 14px; height: 14px; }
+.ic-lg { width: 20px; height: 20px; }
+
+.tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.tab .ic { width: 15px; height: 15px; }
+
+.icon-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--texto-claro);
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: inherit;
+  transition: all 0.15s;
+  position: relative;
+  margin-left: 4px;
+}
+.icon-btn:hover {
+  background: var(--surface-2);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.icon-btn .ic { width: 16px; height: 16px; }
+
+[data-theme="dark"] .icon-btn .theme-icon-light,
+[data-theme="light"] .icon-btn .theme-icon-dark { display: none; }
+
+.btn-primary .ic, .btn-secondary .ic, .btn-link-sm .ic {
+  margin-right: 4px;
+  vertical-align: -2px;
+}
+
+.dash-card-header h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ===== Top procedimentos (bar chart) ===== */
+.top-procs {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 280px;
+  overflow-y: auto;
+}
+.top-proc {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px;
+  font-size: 12px;
+}
+.top-proc-nome {
+  color: var(--texto);
+  font-weight: 500;
+}
+.top-proc-count {
+  font-weight: 700;
+  color: var(--accent);
+}
+.top-proc-bar {
+  grid-column: 1 / -1;
+  height: 6px;
+  background: var(--surface-2);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.top-proc-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent) 0%, var(--accent-2) 100%);
+  border-radius: 3px;
+  transition: width 0.4s;
+}
+
+/* ===== Kanban Board ===== */
+.kanban {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px;
+  margin-top: 16px;
+}
+.kanban-column {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  min-height: 200px;
+}
+.kanban-column.drag-over {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.kanban-col-header {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.kanban-col-header h4 {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--texto-claro);
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.kanban-col-header h4::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.kanban-col-novo h4::before { background: var(--info); }
+.kanban-col-ativo h4::before { background: var(--sucesso); }
+.kanban-col-retorno h4::before { background: var(--alerta); }
+.kanban-col-inativo h4::before { background: var(--texto-mute); }
+.kanban-col-count {
+  background: var(--surface-3);
+  color: var(--texto-claro);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+.kanban-col-body {
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  min-height: 120px;
+}
+.kanban-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px;
+  cursor: grab;
+  transition: all 0.12s;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.kanban-card:active { cursor: grabbing; }
+.kanban-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+.kanban-card.dragging { opacity: 0.4; }
+.kanban-card-nome {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--texto);
+}
+.kanban-card-info {
+  font-size: 11px;
+  color: var(--texto-claro);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.kanban-card-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 4px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--border);
+  font-size: 10px;
+  color: var(--texto-mute);
+}
+.kanban-card-badge {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 600;
+}
+.kanban-col-empty {
+  text-align: center;
+  font-size: 11px;
+  color: var(--texto-mute);
+  font-style: italic;
+  padding: 24px 12px;
+}
+
+/* ===== Patient Detail (Prontuário) ===== */
+.patient-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px;
+  background: var(--surface-2);
+  border-radius: 12px;
+  margin-bottom: 18px;
+}
+.patient-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+  color: var(--accent-contrast);
+  font-weight: 700;
+  font-size: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.patient-info { flex: 1; min-width: 0; }
+.patient-info h2 {
+  font-size: 22px;
+  color: var(--texto);
+  margin: 0;
+  letter-spacing: -0.3px;
+}
+.patient-meta {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--texto-claro);
+}
+.patient-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+.sub-tabs {
+  display: flex;
+  gap: 2px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 18px;
+  overflow-x: auto;
+}
+.sub-tab {
+  background: none;
+  border: none;
+  padding: 10px 16px;
+  color: var(--texto-claro);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  font-family: inherit;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+.sub-tab:hover { color: var(--texto); }
+.sub-tab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+  font-weight: 600;
+}
+.sub-panel { display: none; }
+.sub-panel.active { display: block; animation: fade 0.2s ease-out; }
+
+/* ===== Prontuário ===== */
+.prontuario-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+.prontuario-form textarea {
+  padding: 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--texto);
+  resize: vertical;
+  outline: none;
+}
+.prontuario-form textarea:focus {
+  border-color: var(--accent);
+  background: var(--surface-3);
+}
+.prontuario-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.prontuario-entrada {
+  padding: 14px 16px;
+  background: var(--surface-2);
+  border-left: 3px solid var(--accent);
+  border-radius: 8px;
+  position: relative;
+}
+.prontuario-entrada-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  font-size: 11px;
+  color: var(--texto-claro);
+}
+.prontuario-entrada-texto {
+  font-size: 13px;
+  color: var(--texto);
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+.prontuario-entrada-del {
+  background: none;
+  border: none;
+  color: var(--erro);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  opacity: 0.6;
+}
+.prontuario-entrada-del:hover { opacity: 1; background: var(--erro-soft); }
+
+/* ===== Metas Comerciais ===== */
+.crc-metas-section {
+  margin-bottom: 8px;
+}
+.metas-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 14px;
+}
+.meta-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  cursor: pointer;
+  transition: all 0.15s;
+  position: relative;
+  overflow: hidden;
+}
+.meta-card::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0;
+  width: 4px;
+  height: 100%;
+  background: var(--accent);
+}
+.meta-card.atingida::before { background: var(--sucesso); }
+.meta-card.pausada::before { background: var(--texto-mute); }
+.meta-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+.meta-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 6px;
+}
+.meta-titulo {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--texto);
+  line-height: 1.3;
+}
+.meta-tipo {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--accent);
+  font-weight: 600;
+}
+.meta-progress-wrap {
+  margin: 14px 0 8px;
+}
+.meta-progress {
+  height: 8px;
+  background: var(--surface-2);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+.meta-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent) 0%, var(--accent-2) 100%);
+  border-radius: 4px;
+  transition: width 0.6s;
+}
+.meta-card.atingida .meta-progress-fill {
+  background: linear-gradient(90deg, var(--sucesso) 0%, #6ee7b7 100%);
+}
+.meta-numbers {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 12px;
+}
+.meta-atual { font-weight: 700; color: var(--accent); font-size: 15px; }
+.meta-card.atingida .meta-atual { color: var(--sucesso); }
+.meta-alvo { color: var(--texto-claro); }
+.meta-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--border);
+  font-size: 11px;
+  color: var(--texto-claro);
+}
+.meta-pct {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--accent);
+}
+.meta-card.atingida .meta-pct { color: var(--sucesso); }
+
 /* ===== Dashboard ===== */
 .dash-welcome {
   display: flex;

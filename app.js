@@ -12,7 +12,8 @@ const STORAGE_KEYS = {
   pacientes: "dunas.pacientes",
   agendamentos: "dunas.agendamentos",
   campanhas: "dunas.campanhas",
-  notifsLidas: "dunas.notifsLidas"
+  notifsLidas: "dunas.notifsLidas",
+  metas: "dunas.metas"
 };
 
 // ============================================================
@@ -45,12 +46,19 @@ let pacientes = carregar(STORAGE_KEYS.pacientes, PACIENTES_PADRAO);
 let agendamentos = carregar(STORAGE_KEYS.agendamentos, AGENDAMENTOS_PADRAO);
 let campanhas = carregar(STORAGE_KEYS.campanhas, CAMPANHAS_PADRAO);
 let notifsLidas = carregar(STORAGE_KEYS.notifsLidas, []);
+let metas = carregar(STORAGE_KEYS.metas, METAS_PADRAO);
 let especialidadeAtiva = catalogo[0]?.id;
 let servicoEditando = null;
 let orcamentoAtivo = null;
 let pacienteEditando = null;
 let agendamentoEditando = null;
 let campanhaEditando = null;
+let metaEditando = null;
+let pacienteDetalheId = null;
+
+// Migra pacientes antigos para terem status no kanban
+pacientes.forEach(p => { if (!p.status) p.status = "novo"; });
+pacientes.forEach(p => { if (!p.prontuario) p.prontuario = []; });
 
 const STATUS_LABELS = {
   pendente: "Pendente",
@@ -705,6 +713,7 @@ function entrarNoApp() {
   renderCRM();
   renderAgenda();
   renderCRC();
+  renderMetas();
   renderDashboard();
   renderNotificacoes();
   const primeiroNome = conta.usuarioNome.split(" ")[0];
@@ -841,18 +850,26 @@ function renderDashboard() {
         </div>`).join("")
     : `<div class="dash-list-empty">Nenhuma campanha ativa.</div>`;
 
-  // Notificações recentes (top 5)
-  const notifs = gerarNotificacoes().slice(0, 5);
-  document.getElementById("dash-notifs").innerHTML = notifs.length
-    ? notifs.map(n => `
-        <div class="dash-list-item">
-          <div class="notif-icon" style="width:28px;height:28px;font-size:14px;">${n.icone}</div>
-          <div>
-            <div class="item-titulo">${escapeHtml(n.titulo)}</div>
-            <div class="item-sub">${escapeHtml(n.sub)}</div>
-          </div>
-        </div>`).join("")
-    : `<div class="dash-list-empty">Tudo em dia!</div>`;
+  // Top procedimentos
+  renderTopProcedimentos();
+
+  // Metas (resumo no dashboard)
+  const metasAtivas = metas.filter(m => m.ativo).slice(0, 4);
+  document.getElementById("dash-metas").innerHTML = metasAtivas.length
+    ? metasAtivas.map(m => {
+        const { atual, pct } = calcularMeta(m);
+        return `
+          <div class="dash-list-item" data-meta-go="${m.id}">
+            <div style="flex:1;min-width:0;">
+              <div class="item-titulo">${escapeHtml(m.titulo)}</div>
+              <div class="top-proc-bar" style="margin-top:4px;">
+                <div class="top-proc-bar-fill" style="width:${pct}%"></div>
+              </div>
+            </div>
+            <div class="item-meta"><b style="color:var(--accent);">${Math.round(pct)}%</b></div>
+          </div>`;
+      }).join("")
+    : `<div class="dash-list-empty">Cadastre metas comerciais na aba CRC.</div>`;
 
   // Bind clicks
   document.querySelectorAll("[data-ag-id]").forEach(el => {
@@ -863,6 +880,9 @@ function renderDashboard() {
   });
   document.querySelectorAll("[data-go-tab]").forEach(el => {
     el.onclick = () => abrirAba(el.dataset.goTab);
+  });
+  document.querySelectorAll("[data-meta-go]").forEach(el => {
+    el.onclick = () => abrirAba("crc");
   });
 }
 
@@ -875,55 +895,300 @@ function nomePaciente(id) {
 document.getElementById("qa-novo-paciente").addEventListener("click", () => abrirModalPaciente());
 document.getElementById("qa-novo-agendamento").addEventListener("click", () => abrirModalAgendamento());
 document.getElementById("qa-novo-orcamento").addEventListener("click", () => abrirAba("precificacao"));
-document.getElementById("dash-ver-notifs").addEventListener("click", () => toggleNotifPanel(true));
 
 // ============================================================
-// CRM (Pacientes)
+// CRM — Kanban Board
 // ============================================================
+function iniciais(nome) {
+  return (nome || "?").split(" ").filter(Boolean).slice(0, 2).map(w => w[0]).join("").toUpperCase();
+}
+
 function renderCRM() {
-  const tbody = document.getElementById("tabela-crm-body");
-  const vazio = document.getElementById("crm-vazio");
+  const board = document.getElementById("kanban-board");
+  if (!board) return;
   const filtro = document.getElementById("crm-busca").value.toLowerCase().trim();
-  tbody.innerHTML = "";
+  board.innerHTML = "";
 
-  const lista = pacientes
-    .filter(p => !filtro || [p.nome, p.telefone, p.email].some(v => (v||"").toLowerCase().includes(filtro)))
-    .sort((a, b) => a.nome.localeCompare(b.nome));
+  KANBAN_COLUNAS.forEach(col => {
+    const pacsCol = pacientes
+      .filter(p => (p.status || "novo") === col.id)
+      .filter(p => !filtro || [p.nome, p.telefone, p.email].some(v => (v||"").toLowerCase().includes(filtro)))
+      .sort((a, b) => a.nome.localeCompare(b.nome));
 
-  vazio.style.display = lista.length === 0 ? "block" : "none";
-
-  lista.forEach(p => {
-    const ultimo = ultimoAtendimento(p.id);
-    const tr = document.createElement("tr");
-    tr.style.cursor = "pointer";
-    tr.innerHTML = `
-      <td><b>${escapeHtml(p.nome)}</b></td>
-      <td>${escapeHtml(p.telefone || "—")}</td>
-      <td>${escapeHtml(p.email || "—")}</td>
-      <td>${p.dataNascimento ? fmtDataCurta(p.dataNascimento) : "—"}</td>
-      <td>${ultimo ? fmtDataCurta(ultimo.data) : '<span style="color:var(--texto-mute);">Nunca</span>'}</td>
-      <td><button class="btn-excluir">✏️</button></td>
-    `;
-    tr.onclick = () => abrirModalPaciente(p.id);
-    tbody.appendChild(tr);
+    const colDiv = document.createElement("div");
+    colDiv.className = `kanban-column ${col.classe}`;
+    colDiv.dataset.col = col.id;
+    colDiv.innerHTML = `
+      <div class="kanban-col-header">
+        <h4>${col.label}</h4>
+        <span class="kanban-col-count">${pacsCol.length}</span>
+      </div>
+      <div class="kanban-col-body" data-col="${col.id}">
+        ${pacsCol.length === 0
+          ? `<div class="kanban-col-empty">Arraste pacientes para cá</div>`
+          : pacsCol.map(p => {
+              const ult = ultimoAtendimento(p.id);
+              return `
+                <div class="kanban-card" draggable="true" data-pac-id="${p.id}">
+                  <div style="display:flex;align-items:center;gap:8px;">
+                    <div class="patient-avatar" style="width:32px;height:32px;font-size:12px;">${iniciais(p.nome)}</div>
+                    <div style="min-width:0;flex:1;">
+                      <div class="kanban-card-nome">${escapeHtml(p.nome)}</div>
+                      <div class="kanban-card-info">${escapeHtml(p.telefone || "sem telefone")}</div>
+                    </div>
+                  </div>
+                  <div class="kanban-card-meta">
+                    <span>${ult ? "Último: " + fmtDataCurta(ult.data) : "Sem atendimentos"}</span>
+                    ${aniversarioEsteMes(p.dataNascimento) ? '<span class="kanban-card-badge">🎂</span>' : ''}
+                  </div>
+                </div>`;
+            }).join("")}
+      </div>`;
+    board.appendChild(colDiv);
   });
 
-  // Stats
-  const hoje = new Date();
-  const seisMeses = new Date(hoje.getTime() - 180 * DIAS_MS).toISOString().slice(0, 10);
-  let ativos = 0, inativos = 0;
-  pacientes.forEach(p => {
-    const ult = ultimoAtendimento(p.id);
-    if (ult && ult.data >= seisMeses) ativos++;
-    else if (ult) inativos++;
+  // Bind clicks (abrir detalhe)
+  board.querySelectorAll(".kanban-card").forEach(card => {
+    card.addEventListener("click", () => abrirDetalhePaciente(card.dataset.pacId));
+    // Drag & drop
+    card.addEventListener("dragstart", (e) => {
+      card.classList.add("dragging");
+      e.dataTransfer.setData("text/plain", card.dataset.pacId);
+      e.dataTransfer.effectAllowed = "move";
+    });
+    card.addEventListener("dragend", () => card.classList.remove("dragging"));
   });
-  document.getElementById("crm-total").textContent = pacientes.length;
-  document.getElementById("crm-ativos").textContent = ativos;
-  document.getElementById("crm-inativos").textContent = inativos;
+
+  board.querySelectorAll(".kanban-column").forEach(col => {
+    col.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      col.classList.add("drag-over");
+    });
+    col.addEventListener("dragleave", () => col.classList.remove("drag-over"));
+    col.addEventListener("drop", (e) => {
+      e.preventDefault();
+      col.classList.remove("drag-over");
+      const pacId = e.dataTransfer.getData("text/plain");
+      const novaCol = col.dataset.col;
+      const pac = pacientes.find(p => p.id === pacId);
+      if (pac && pac.status !== novaCol) {
+        pac.status = novaCol;
+        salvar(STORAGE_KEYS.pacientes, pacientes);
+        renderCRM();
+        renderDashboard();
+      }
+    });
+  });
 }
 
 document.getElementById("crm-busca").addEventListener("input", renderCRM);
 document.getElementById("novo-paciente").addEventListener("click", () => abrirModalPaciente());
+
+// ============================================================
+// CRM — Detalhe do Paciente (Prontuário)
+// ============================================================
+function abrirDetalhePaciente(id) {
+  pacienteDetalheId = id;
+  document.getElementById("crm-view-kanban").style.display = "none";
+  document.getElementById("crm-view-detalhe").style.display = "block";
+  renderDetalhePaciente();
+}
+
+function voltarParaKanban() {
+  pacienteDetalheId = null;
+  document.getElementById("crm-view-kanban").style.display = "block";
+  document.getElementById("crm-view-detalhe").style.display = "none";
+}
+
+document.getElementById("voltar-kanban").addEventListener("click", voltarParaKanban);
+
+function renderDetalhePaciente() {
+  const p = pacientes.find(x => x.id === pacienteDetalheId);
+  if (!p) return voltarParaKanban();
+
+  document.getElementById("pac-avatar").textContent = iniciais(p.nome);
+  document.getElementById("pac-detalhe-nome").textContent = p.nome;
+  document.getElementById("pac-detalhe-idade").textContent = p.dataNascimento ? `${idadeAtual(p.dataNascimento)} anos` : "Idade —";
+  document.getElementById("pac-detalhe-tel").textContent = p.telefone || "Sem telefone";
+  document.getElementById("pac-detalhe-email").textContent = p.email || "Sem email";
+
+  const stCol = KANBAN_COLUNAS.find(c => c.id === (p.status || "novo"));
+  const stBadge = document.getElementById("pac-detalhe-status");
+  stBadge.textContent = stCol?.label || "—";
+  stBadge.className = "status-badge";
+  if (p.status === "ativo") stBadge.classList.add("status-aprovado");
+  else if (p.status === "retorno") stBadge.classList.add("status-pendente");
+  else if (p.status === "inativo") stBadge.classList.add("status-rejeitado");
+  else stBadge.classList.add("status-executado");
+
+  // Sub-aba: Dados
+  document.getElementById("r-nome").textContent = p.nome;
+  document.getElementById("r-idade").textContent = p.dataNascimento
+    ? `${idadeAtual(p.dataNascimento)} anos (${fmtDataCurta(p.dataNascimento)})`
+    : "—";
+  document.getElementById("r-tel").textContent = p.telefone || "—";
+  document.getElementById("r-email").textContent = p.email || "—";
+  document.getElementById("r-cad").textContent = p.criadoEm ? fmtDataCurta(p.criadoEm.slice(0, 10)) : "—";
+  const ult = ultimoAtendimento(p.id);
+  document.getElementById("r-ult").textContent = ult ? `${fmtDataCurta(ult.data)} — ${ult.procedimento || ""}` : "Nunca";
+  document.getElementById("r-obs").textContent = p.observacoes || "—";
+
+  renderProntuario(p);
+  renderPacienteProcedimentos(p);
+  renderPacienteAgendamentos(p);
+  renderPacienteOrcamentos(p);
+}
+
+document.getElementById("pac-detalhe-editar").addEventListener("click", () => {
+  if (pacienteDetalheId) abrirModalPaciente(pacienteDetalheId);
+});
+
+// Sub-tabs
+document.querySelectorAll(".sub-tab").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".sub-tab").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    document.querySelectorAll(".sub-panel").forEach(p => p.classList.remove("active"));
+    document.getElementById("sub-" + btn.dataset.subtab).classList.add("active");
+  });
+});
+
+// --- Prontuário ---
+function renderProntuario(p) {
+  const lista = document.getElementById("pront-lista");
+  const entradas = (p.prontuario || []).slice().sort((a, b) => b.data.localeCompare(a.data));
+  lista.innerHTML = entradas.length
+    ? entradas.map(e => `
+        <div class="prontuario-entrada" data-entry-id="${e.id}">
+          <div class="prontuario-entrada-meta">
+            <span><b>${fmtDataHora(e.data)}</b> · ${escapeHtml(e.autor || "—")}</span>
+            <button class="prontuario-entrada-del" data-del="${e.id}">Excluir</button>
+          </div>
+          <div class="prontuario-entrada-texto">${escapeHtml(e.texto)}</div>
+        </div>`).join("")
+    : `<div class="dash-list-empty">Nenhuma entrada no prontuário ainda.</div>`;
+
+  lista.querySelectorAll(".prontuario-entrada-del").forEach(btn => {
+    btn.addEventListener("click", (ev) => {
+      ev.stopPropagation();
+      if (!confirm("Excluir esta entrada do prontuário?")) return;
+      p.prontuario = p.prontuario.filter(e => e.id !== btn.dataset.del);
+      salvar(STORAGE_KEYS.pacientes, pacientes);
+      renderProntuario(p);
+    });
+  });
+}
+
+document.getElementById("pront-adicionar").addEventListener("click", () => {
+  const p = pacientes.find(x => x.id === pacienteDetalheId);
+  if (!p) return;
+  const texto = document.getElementById("pront-novo").value.trim();
+  if (!texto) return;
+  if (!p.prontuario) p.prontuario = [];
+  p.prontuario.push({
+    id: "pr-" + Date.now(),
+    data: new Date().toISOString(),
+    autor: conta?.usuarioNome || "—",
+    texto
+  });
+  salvar(STORAGE_KEYS.pacientes, pacientes);
+  document.getElementById("pront-novo").value = "";
+  renderProntuario(p);
+  flash("Entrada adicionada ao prontuário");
+});
+
+// --- Procedimentos do paciente ---
+function renderPacienteProcedimentos(p) {
+  const ags = agendamentos
+    .filter(a => a.pacienteId === p.id && a.status === "realizado")
+    .sort((a, b) => (b.data + b.hora).localeCompare(a.data + a.hora));
+
+  const orcsExec = historico
+    .filter(o => o.paciente === p.nome && o.status === "executado")
+    .sort((a, b) => b.criadoEm.localeCompare(a.criadoEm));
+
+  const div = document.getElementById("pac-procedimentos-lista");
+  if (ags.length === 0 && orcsExec.length === 0) {
+    div.innerHTML = `<div class="dash-list-empty">Nenhum procedimento realizado ainda.</div>`;
+    return;
+  }
+
+  let html = "";
+  if (ags.length) {
+    html += `<h4 style="font-size:12px;color:var(--texto-claro);text-transform:uppercase;letter-spacing:0.5px;margin:8px 0;">Da agenda</h4>`;
+    html += ags.map(a => `
+      <div class="dash-list-item">
+        <div>
+          <div class="item-titulo">${escapeHtml(a.procedimento || "Consulta")}</div>
+          <div class="item-sub">${a.duracao || 60} min${a.retorno ? " · retorno" : ""}</div>
+        </div>
+        <div class="item-meta">${fmtDataCurta(a.data)}</div>
+      </div>`).join("");
+  }
+  if (orcsExec.length) {
+    html += `<h4 style="font-size:12px;color:var(--texto-claro);text-transform:uppercase;letter-spacing:0.5px;margin:14px 0 8px;">Orçamentos executados</h4>`;
+    html += orcsExec.map(o => `
+      <div class="dash-list-item">
+        <div>
+          <div class="item-titulo">${escapeHtml(o.servicoNome)}</div>
+          <div class="item-sub">${escapeHtml(o.especialidadeNome)}</div>
+        </div>
+        <div class="item-meta">${fmtDataCurta(o.criadoEm.slice(0,10))}<br><b style="color:var(--accent);">${fmt(o.sugerido)}</b></div>
+      </div>`).join("");
+  }
+  div.innerHTML = html;
+}
+
+function renderPacienteAgendamentos(p) {
+  const ags = agendamentos
+    .filter(a => a.pacienteId === p.id)
+    .sort((a, b) => (b.data + b.hora).localeCompare(a.data + a.hora));
+  const div = document.getElementById("pac-agendamentos-lista");
+  div.innerHTML = ags.length
+    ? ags.map(a => {
+        const stConf = STATUS_AGENDA[a.status] || STATUS_AGENDA.agendado;
+        return `
+          <div class="dash-list-item" data-ag-id="${a.id}">
+            <div>
+              <div class="item-titulo">${escapeHtml(a.procedimento || "Consulta")} ${a.retorno ? '<span style="color:var(--info);font-size:11px;">↺ retorno</span>' : ''}</div>
+              <div class="item-sub">${stConf.label} · ${a.duracao || 60} min</div>
+            </div>
+            <div class="item-meta">${fmtDataCurta(a.data)}<br><b>${a.hora}</b></div>
+          </div>`;
+      }).join("")
+    : `<div class="dash-list-empty">Nenhum agendamento.</div>`;
+
+  div.querySelectorAll("[data-ag-id]").forEach(el => {
+    el.onclick = () => abrirModalAgendamento(el.dataset.agId);
+  });
+}
+
+document.getElementById("ag-novo-paciente").addEventListener("click", () => {
+  abrirModalAgendamento();
+  // Pré-seleciona o paciente atual
+  setTimeout(() => {
+    if (pacienteDetalheId) {
+      document.getElementById("ag-paciente").value = pacienteDetalheId;
+    }
+  }, 0);
+});
+
+function renderPacienteOrcamentos(p) {
+  const orcs = historico
+    .filter(o => o.paciente === p.nome)
+    .sort((a, b) => b.criadoEm.localeCompare(a.criadoEm));
+  const div = document.getElementById("pac-orcamentos-lista");
+  div.innerHTML = orcs.length
+    ? orcs.map(o => `
+        <div class="dash-list-item">
+          <div>
+            <div class="item-titulo">${escapeHtml(o.servicoNome)}</div>
+            <div class="item-sub">${escapeHtml(o.especialidadeNome)} · <span class="status-badge status-${o.status}">${o.status}</span></div>
+          </div>
+          <div class="item-meta">${fmtDataCurta(o.criadoEm.slice(0,10))}<br><b style="color:var(--accent);">${fmt(o.sugerido)}</b></div>
+        </div>`).join("")
+    : `<div class="dash-list-empty">Nenhum orçamento.</div>`;
+}
 
 function abrirModalPaciente(id) {
   pacienteEditando = id ? pacientes.find(p => p.id === id) : null;
@@ -932,6 +1197,7 @@ function abrirModalPaciente(id) {
   document.getElementById("pac-telefone").value = pacienteEditando?.telefone || "";
   document.getElementById("pac-email").value = pacienteEditando?.email || "";
   document.getElementById("pac-nascimento").value = pacienteEditando?.dataNascimento || "";
+  document.getElementById("pac-status").value = pacienteEditando?.status || "novo";
   document.getElementById("pac-obs").value = pacienteEditando?.observacoes || "";
   document.getElementById("pac-excluir").style.display = pacienteEditando ? "inline-block" : "none";
 
@@ -963,6 +1229,7 @@ document.getElementById("pac-salvar").addEventListener("click", () => {
     telefone: document.getElementById("pac-telefone").value.trim(),
     email: document.getElementById("pac-email").value.trim(),
     dataNascimento: document.getElementById("pac-nascimento").value || null,
+    status: document.getElementById("pac-status").value || "novo",
     observacoes: document.getElementById("pac-obs").value.trim()
   };
 
@@ -972,6 +1239,7 @@ document.getElementById("pac-salvar").addEventListener("click", () => {
     pacientes.push({
       id: "p-" + Date.now() + "-" + Math.random().toString(36).slice(2, 6),
       ...dados,
+      prontuario: [],
       criadoEm: new Date().toISOString()
     });
   }
@@ -981,6 +1249,7 @@ document.getElementById("pac-salvar").addEventListener("click", () => {
   renderDashboard();
   renderCRC();
   renderNotificacoes();
+  if (pacienteDetalheId) renderDetalhePaciente();
   flash("Paciente salvo");
 });
 
@@ -1129,6 +1398,7 @@ document.getElementById("ag-excluir").addEventListener("click", () => {
 // CRC
 // ============================================================
 function renderCRC() {
+  renderMetas();
   // Aniversariantes do mês
   const aniv = pacientes
     .filter(p => aniversarioEsteMes(p.dataNascimento))
@@ -1235,6 +1505,186 @@ document.getElementById("camp-excluir").addEventListener("click", () => {
   renderCRC();
   renderDashboard();
   renderNotificacoes();
+});
+
+// ============================================================
+// TOP PROCEDIMENTOS (Dashboard)
+// ============================================================
+function topProcedimentos(diasJanela = 90) {
+  const limite = new Date(Date.now() - diasJanela * DIAS_MS).toISOString().slice(0, 10);
+  const contagem = {};
+
+  // Da agenda (status realizado)
+  agendamentos.filter(a => a.status === "realizado" && a.data >= limite).forEach(a => {
+    const nome = (a.procedimento || "Consulta").trim();
+    if (!nome) return;
+    contagem[nome] = (contagem[nome] || 0) + 1;
+  });
+
+  // Dos orçamentos executados
+  historico.filter(o => o.status === "executado" && o.criadoEm.slice(0, 10) >= limite).forEach(o => {
+    const nome = o.servicoNome || "—";
+    contagem[nome] = (contagem[nome] || 0) + 1;
+  });
+
+  return Object.entries(contagem)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 6)
+    .map(([nome, count]) => ({ nome, count }));
+}
+
+function renderTopProcedimentos() {
+  const lista = topProcedimentos(90);
+  const max = Math.max(1, ...lista.map(p => p.count));
+  const div = document.getElementById("dash-top-procs");
+  if (!div) return;
+  div.innerHTML = lista.length
+    ? lista.map(p => `
+        <div class="top-proc">
+          <span class="top-proc-nome">${escapeHtml(p.nome)}</span>
+          <span class="top-proc-count">${p.count}</span>
+          <div class="top-proc-bar"><div class="top-proc-bar-fill" style="width:${(p.count/max*100).toFixed(0)}%"></div></div>
+        </div>`).join("")
+    : `<div class="dash-list-empty">Nenhum procedimento realizado nos últimos 90 dias.</div>`;
+}
+
+// ============================================================
+// METAS COMERCIAIS
+// ============================================================
+function calcularMeta(meta) {
+  const inicio = meta.dataInicio;
+  const fim = meta.dataFim;
+  let atual = 0;
+
+  if (meta.tipo === "receita") {
+    atual = historico
+      .filter(o => o.status === "executado" && o.criadoEm.slice(0,10) >= inicio && o.criadoEm.slice(0,10) <= fim)
+      .reduce((s, o) => s + (o.sugerido || 0), 0);
+  } else if (meta.tipo === "pacientes") {
+    atual = pacientes.filter(p => p.criadoEm && p.criadoEm.slice(0,10) >= inicio && p.criadoEm.slice(0,10) <= fim).length;
+  } else if (meta.tipo === "procedimentos") {
+    atual = agendamentos.filter(a => a.status === "realizado" && a.data >= inicio && a.data <= fim).length;
+  } else if (meta.tipo === "orcamentos") {
+    atual = historico.filter(o => (o.status === "aprovado" || o.status === "executado") && o.criadoEm.slice(0,10) >= inicio && o.criadoEm.slice(0,10) <= fim).length;
+  }
+
+  const pct = meta.valor > 0 ? Math.min(100, (atual / meta.valor) * 100) : 0;
+  return { atual, pct };
+}
+
+function formatarValorMeta(tipo, valor) {
+  if (TIPOS_META[tipo]?.formato === "moeda") return fmt(valor);
+  return Math.round(valor).toLocaleString("pt-BR");
+}
+
+function renderMetas() {
+  const grid = document.getElementById("crc-metas-grid");
+  if (!grid) return;
+
+  grid.innerHTML = metas.length
+    ? metas.map(m => {
+        const { atual, pct } = calcularMeta(m);
+        const atingida = pct >= 100;
+        const classe = !m.ativo ? "pausada" : (atingida ? "atingida" : "");
+        const campsLinkadas = (m.campanhaIds || [])
+          .map(id => campanhas.find(c => c.id === id)?.titulo)
+          .filter(Boolean);
+        return `
+          <div class="meta-card ${classe}" data-meta-id="${m.id}">
+            <div class="meta-header">
+              <div>
+                <div class="meta-titulo">${escapeHtml(m.titulo)}</div>
+                <div class="meta-tipo">${TIPOS_META[m.tipo]?.label || m.tipo}</div>
+              </div>
+              <div class="meta-pct">${Math.round(pct)}%</div>
+            </div>
+            <div class="meta-progress-wrap">
+              <div class="meta-progress">
+                <div class="meta-progress-fill" style="width:${pct}%"></div>
+              </div>
+              <div class="meta-numbers">
+                <span class="meta-atual">${formatarValorMeta(m.tipo, atual)}</span>
+                <span class="meta-alvo">de ${formatarValorMeta(m.tipo, m.valor)}</span>
+              </div>
+            </div>
+            <div class="meta-footer">
+              <span>${fmtDataCurta(m.dataInicio)} → ${fmtDataCurta(m.dataFim)}</span>
+              ${campsLinkadas.length ? `<span title="Campanhas vinculadas">📣 ${campsLinkadas.length}</span>` : ''}
+            </div>
+          </div>`;
+      }).join("")
+    : `<div class="dash-list-empty">Nenhuma meta cadastrada. Clique em <b>+ Nova meta</b> para começar.</div>`;
+
+  grid.querySelectorAll(".meta-card").forEach(el => {
+    el.onclick = () => abrirModalMeta(el.dataset.metaId);
+  });
+}
+
+document.getElementById("nova-meta").addEventListener("click", () => abrirModalMeta());
+
+function abrirModalMeta(id) {
+  metaEditando = id ? metas.find(m => m.id === id) : null;
+  document.getElementById("meta-titulo").textContent = metaEditando ? "Editar meta" : "Nova meta";
+  document.getElementById("meta-titulo-input").value = metaEditando?.titulo || "";
+  document.getElementById("meta-tipo").value = metaEditando?.tipo || "receita";
+  document.getElementById("meta-valor").value = metaEditando?.valor || "";
+  document.getElementById("meta-inicio").value = metaEditando?.dataInicio || hojeISO();
+
+  // Fim = último dia do mês corrente por padrão
+  const padraoFim = (() => {
+    const h = new Date();
+    return new Date(h.getFullYear(), h.getMonth() + 1, 0).toISOString().slice(0, 10);
+  })();
+  document.getElementById("meta-fim").value = metaEditando?.dataFim || padraoFim;
+
+  document.getElementById("meta-ativo").checked = metaEditando ? metaEditando.ativo : true;
+  document.getElementById("meta-excluir").style.display = metaEditando ? "inline-block" : "none";
+
+  // Popula select de campanhas
+  const sel = document.getElementById("meta-campanhas");
+  sel.innerHTML = campanhas.map(c => `
+    <option value="${c.id}" ${(metaEditando?.campanhaIds || []).includes(c.id) ? "selected" : ""}>${escapeHtml(c.titulo)}</option>
+  `).join("");
+
+  document.getElementById("modal-meta").classList.add("open");
+}
+
+document.getElementById("meta-salvar").addEventListener("click", () => {
+  const titulo = document.getElementById("meta-titulo-input").value.trim();
+  const valor = parseFloat(document.getElementById("meta-valor").value);
+  if (!titulo) { alert("Informe o título."); return; }
+  if (!valor || valor <= 0) { alert("Informe um valor alvo positivo."); return; }
+
+  const campIds = Array.from(document.getElementById("meta-campanhas").selectedOptions).map(o => o.value);
+
+  const dados = {
+    titulo,
+    tipo: document.getElementById("meta-tipo").value,
+    valor,
+    dataInicio: document.getElementById("meta-inicio").value,
+    dataFim: document.getElementById("meta-fim").value,
+    ativo: document.getElementById("meta-ativo").checked,
+    campanhaIds: campIds
+  };
+
+  if (metaEditando) Object.assign(metaEditando, dados);
+  else metas.push({ id: "m-" + Date.now(), ...dados });
+
+  salvar(STORAGE_KEYS.metas, metas);
+  document.getElementById("modal-meta").classList.remove("open");
+  renderMetas();
+  renderDashboard();
+  flash("Meta salva");
+});
+
+document.getElementById("meta-excluir").addEventListener("click", () => {
+  if (!metaEditando) return;
+  if (!confirm("Excluir esta meta?")) return;
+  metas = metas.filter(m => m.id !== metaEditando.id);
+  salvar(STORAGE_KEYS.metas, metas);
+  document.getElementById("modal-meta").classList.remove("open");
+  renderMetas();
+  renderDashboard();
 });
 
 // ============================================================

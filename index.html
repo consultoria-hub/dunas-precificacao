@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Dunas Health — Precificação Odontológica</title>
-  <link rel="stylesheet" href="styles.css?v=6" />
+  <link rel="stylesheet" href="styles.css?v=7" />
 </head>
 <body>
 
@@ -119,23 +119,53 @@
       </div>
 
       <nav class="tabs">
-        <button class="tab active" data-tab="dashboard">📊 Dashboard</button>
-        <button class="tab" data-tab="agenda">📅 Agenda</button>
-        <button class="tab" data-tab="crm">👥 CRM</button>
-        <button class="tab" data-tab="crc">💬 CRC</button>
-        <button class="tab" data-tab="historico">📋 Orçamentos</button>
-        <button class="tab" data-tab="precificacao">💰 Precificação</button>
-        <button class="tab" data-tab="custos-fixos">Custos Fixos</button>
-        <button class="tab" data-tab="parametros">Parâmetros</button>
-        <button class="tab" data-tab="catalogo">Catálogo</button>
-        <button class="theme-toggle notif-btn" id="notif-btn" title="Notificações">
-          🔔<span class="notif-badge" id="notif-badge" style="display:none;">0</span>
+        <button class="tab active" data-tab="dashboard">
+          <svg class="ic" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+          Dashboard
         </button>
-        <button class="theme-toggle" id="theme-toggle" title="Alternar tema">
-          <span class="theme-icon-dark">🌙</span>
-          <span class="theme-icon-light">☀️</span>
+        <button class="tab" data-tab="agenda">
+          <svg class="ic" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+          Agenda
         </button>
-        <button class="theme-toggle" id="btn-logout" title="Sair">↩</button>
+        <button class="tab" data-tab="crm">
+          <svg class="ic" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 12l3-3 3 3 4-5"/></svg>
+          CRM
+        </button>
+        <button class="tab" data-tab="crc">
+          <svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+          CRC
+        </button>
+        <button class="tab" data-tab="historico">
+          <svg class="ic" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>
+          Orçamentos
+        </button>
+        <button class="tab" data-tab="precificacao">
+          <svg class="ic" viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M8 6h8M8 10h8M8 14h2M14 14h2M8 18h2M14 18h2"/></svg>
+          Precificação
+        </button>
+        <button class="tab" data-tab="custos-fixos">
+          <svg class="ic" viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          Custos
+        </button>
+        <button class="tab" data-tab="parametros">
+          <svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          Ajustes
+        </button>
+        <button class="tab" data-tab="catalogo">
+          <svg class="ic" viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2zM22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+          Catálogo
+        </button>
+        <button class="icon-btn notif-btn" id="notif-btn" title="Notificações">
+          <svg class="ic" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+          <span class="notif-badge" id="notif-badge" style="display:none;">0</span>
+        </button>
+        <button class="icon-btn" id="theme-toggle" title="Alternar tema">
+          <svg class="ic theme-icon-dark" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          <svg class="ic theme-icon-light" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+        </button>
+        <button class="icon-btn" id="btn-logout" title="Sair">
+          <svg class="ic" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+        </button>
       </nav>
 
       <!-- Painel de notificações -->
@@ -190,7 +220,7 @@
       <div class="dash-grid-2">
         <div class="dash-card">
           <div class="dash-card-header">
-            <h3>📅 Próximos agendamentos</h3>
+            <h3><svg class="ic ic-sm" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg> Próximos agendamentos</h3>
             <button class="btn-link-sm" data-go-tab="agenda">Ver agenda →</button>
           </div>
           <div id="dash-agenda-lista" class="dash-list"></div>
@@ -198,7 +228,15 @@
 
         <div class="dash-card">
           <div class="dash-card-header">
-            <h3>🎂 Aniversariantes</h3>
+            <h3><svg class="ic ic-sm" viewBox="0 0 24 24"><path d="M12 22s-8-4.5-8-12a8 8 0 0 1 16 0c0 7.5-8 12-8 12z"/><circle cx="12" cy="10" r="3"/></svg> Top procedimentos</h3>
+            <span class="hint" style="font-size:11px;">últimos 90 dias</span>
+          </div>
+          <div id="dash-top-procs" class="top-procs"></div>
+        </div>
+
+        <div class="dash-card">
+          <div class="dash-card-header">
+            <h3><svg class="ic ic-sm" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> Aniversariantes</h3>
             <button class="btn-link-sm" data-go-tab="crc">Ver todos →</button>
           </div>
           <div id="dash-aniversariantes" class="dash-list"></div>
@@ -206,7 +244,7 @@
 
         <div class="dash-card">
           <div class="dash-card-header">
-            <h3>📣 Campanhas ativas</h3>
+            <h3><svg class="ic ic-sm" viewBox="0 0 24 24"><path d="M3 11l18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg> Campanhas ativas</h3>
             <button class="btn-link-sm" data-go-tab="crc">Gerenciar →</button>
           </div>
           <div id="dash-campanhas" class="dash-list"></div>
@@ -214,10 +252,10 @@
 
         <div class="dash-card">
           <div class="dash-card-header">
-            <h3>🔔 Notificações recentes</h3>
-            <button class="btn-link-sm" id="dash-ver-notifs">Ver todas →</button>
+            <h3><svg class="ic ic-sm" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg> Metas comerciais</h3>
+            <button class="btn-link-sm" data-go-tab="crc">Gerenciar →</button>
           </div>
-          <div id="dash-notifs" class="dash-list"></div>
+          <div id="dash-metas" class="dash-list"></div>
         </div>
       </div>
     </section>
@@ -264,50 +302,91 @@
       </div>
     </section>
 
-    <!-- ====================== TAB: CRM (Pacientes) ====================== -->
+    <!-- ====================== TAB: CRM (Kanban + Prontuário) ====================== -->
     <section id="crm" class="panel">
-      <div class="card-wide">
+
+      <!-- VIEW: KANBAN -->
+      <div id="crm-view-kanban" class="card-wide">
         <div class="catalog-header">
           <div>
             <h2>CRM — Pacientes</h2>
-            <p class="hint">Base de pacientes do consultório.</p>
+            <p class="hint">Visualização Kanban por estágio do paciente.</p>
           </div>
           <div class="actions">
-            <input type="text" id="crm-busca" placeholder="Buscar por nome, telefone ou email..." />
-            <button class="btn-primary" id="novo-paciente">+ Novo paciente</button>
+            <input type="text" id="crm-busca" placeholder="Buscar paciente..." />
+            <button class="btn-primary" id="novo-paciente">
+              <svg class="ic ic-sm" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+              Novo paciente
+            </button>
           </div>
         </div>
 
-        <div class="stats-bar">
-          <div class="stat-card destaque">
-            <span class="stat-label">Total de pacientes</span>
-            <span class="stat-valor" id="crm-total">0</span>
+        <div class="kanban" id="kanban-board"></div>
+      </div>
+
+      <!-- VIEW: DETALHE / PRONTUÁRIO -->
+      <div id="crm-view-detalhe" class="card-wide" style="display:none;">
+        <button class="btn-link-sm" id="voltar-kanban" style="margin-bottom:14px;">
+          <svg class="ic ic-sm" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          Voltar para CRM
+        </button>
+
+        <div class="patient-header">
+          <div class="patient-avatar" id="pac-avatar">?</div>
+          <div class="patient-info">
+            <h2 id="pac-detalhe-nome">—</h2>
+            <p class="patient-meta">
+              <span id="pac-detalhe-idade">—</span> ·
+              <span id="pac-detalhe-tel">—</span> ·
+              <span id="pac-detalhe-email">—</span>
+            </p>
           </div>
-          <div class="stat-card sucesso-card">
-            <span class="stat-label">Ativos (últimos 6 meses)</span>
-            <span class="stat-valor" id="crm-ativos">0</span>
-          </div>
-          <div class="stat-card alerta-card">
-            <span class="stat-label">Inativos (sem retorno)</span>
-            <span class="stat-valor" id="crm-inativos">0</span>
+          <div class="patient-actions">
+            <span class="status-badge" id="pac-detalhe-status">—</span>
+            <button class="btn-secondary btn-small" id="pac-detalhe-editar">Editar dados</button>
           </div>
         </div>
 
-        <div class="tabela-wrapper">
-          <table class="tabela-catalogo">
-            <thead>
-              <tr>
-                <th>Nome</th>
-                <th>Telefone</th>
-                <th>Email</th>
-                <th style="width:120px;">Nascimento</th>
-                <th style="width:140px;">Último atendimento</th>
-                <th style="width:50px;"></th>
-              </tr>
-            </thead>
-            <tbody id="tabela-crm-body"></tbody>
-          </table>
-          <p id="crm-vazio" class="vazio">Nenhum paciente cadastrado. Clique em <b>+ Novo paciente</b>.</p>
+        <div class="sub-tabs">
+          <button class="sub-tab active" data-subtab="dados">Resumo</button>
+          <button class="sub-tab" data-subtab="prontuario">Prontuário</button>
+          <button class="sub-tab" data-subtab="procedimentos">Procedimentos</button>
+          <button class="sub-tab" data-subtab="agendamentos">Agendamentos</button>
+          <button class="sub-tab" data-subtab="orcamentos">Orçamentos</button>
+        </div>
+
+        <div class="sub-panel active" id="sub-dados">
+          <div class="orc-grid">
+            <div class="item"><span>Nome</span><b id="r-nome">—</b></div>
+            <div class="item"><span>Idade / Nascimento</span><b id="r-idade">—</b></div>
+            <div class="item"><span>Telefone</span><b id="r-tel">—</b></div>
+            <div class="item"><span>E-mail</span><b id="r-email">—</b></div>
+            <div class="item"><span>Cadastrado em</span><b id="r-cad">—</b></div>
+            <div class="item"><span>Último atendimento</span><b id="r-ult">—</b></div>
+          </div>
+          <h4 style="margin-top:18px;color:var(--accent);font-size:13px;text-transform:uppercase;letter-spacing:0.5px;">Observações</h4>
+          <p id="r-obs" style="margin:8px 0;color:var(--texto);font-size:13px;">—</p>
+        </div>
+
+        <div class="sub-panel" id="sub-prontuario">
+          <div class="prontuario-form">
+            <textarea id="pront-novo" rows="2" placeholder="Nova entrada no prontuário (anamnese, exames, observações clínicas)..."></textarea>
+            <button class="btn-primary btn-small" id="pront-adicionar">Adicionar entrada</button>
+          </div>
+          <div id="pront-lista" class="prontuario-lista"></div>
+        </div>
+
+        <div class="sub-panel" id="sub-procedimentos">
+          <div id="pac-procedimentos-lista"></div>
+        </div>
+
+        <div class="sub-panel" id="sub-agendamentos">
+          <button class="btn-primary btn-small" id="ag-novo-paciente" style="margin-bottom:12px;">+ Novo agendamento para este paciente</button>
+          <div id="pac-agendamentos-lista"></div>
+        </div>
+
+        <div class="sub-panel" id="sub-orcamentos">
+          <div id="pac-orcamentos-lista"></div>
         </div>
       </div>
     </section>
@@ -316,12 +395,29 @@
     <section id="crc" class="panel">
       <div class="card-wide">
         <h2>CRC — Central de Relacionamento</h2>
-        <p class="hint">Acompanhamento de relacionamento e ações com pacientes.</p>
+        <p class="hint">Metas, campanhas e relacionamento com pacientes.</p>
+
+        <!-- Metas Comerciais -->
+        <div class="crc-metas-section">
+          <div class="dash-card-header" style="margin-bottom:14px;">
+            <h3 style="font-size:16px;">
+              <svg class="ic ic-sm" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+              Metas comerciais
+            </h3>
+            <button class="btn-primary btn-small" id="nova-meta">
+              <svg class="ic ic-sm" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+              Nova meta
+            </button>
+          </div>
+          <div id="crc-metas-grid" class="metas-grid"></div>
+        </div>
+
+        <hr style="border:none;border-top:1px solid var(--border);margin:24px 0;" />
 
         <div class="crc-grid">
           <div class="dash-card">
             <div class="dash-card-header">
-              <h3>🎂 Aniversariantes do mês</h3>
+              <h3><svg class="ic ic-sm" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> Aniversariantes do mês</h3>
               <span class="badge-count" id="crc-aniv-count">0</span>
             </div>
             <div id="crc-aniversariantes" class="dash-list"></div>
@@ -329,7 +425,7 @@
 
           <div class="dash-card">
             <div class="dash-card-header">
-              <h3>⏰ Sugestões de retorno</h3>
+              <h3><svg class="ic ic-sm" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> Sugestões de retorno</h3>
               <span class="badge-count" id="crc-retorno-count">0</span>
             </div>
             <p class="hint">Pacientes sem atendimento há mais de 6 meses.</p>
@@ -338,8 +434,11 @@
 
           <div class="dash-card" style="grid-column: 1 / -1;">
             <div class="dash-card-header">
-              <h3>📣 Campanhas promocionais</h3>
-              <button class="btn-primary btn-small" id="nova-campanha">+ Nova campanha</button>
+              <h3><svg class="ic ic-sm" viewBox="0 0 24 24"><path d="M3 11l18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg> Campanhas promocionais</h3>
+              <button class="btn-primary btn-small" id="nova-campanha">
+                <svg class="ic ic-sm" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+                Nova campanha
+              </button>
             </div>
             <div id="crc-campanhas" class="dash-list"></div>
           </div>
@@ -740,6 +839,14 @@
           <label>Data de nascimento
             <input type="date" id="pac-nascimento" />
           </label>
+          <label>Estágio no CRM
+            <select id="pac-status">
+              <option value="novo">Novo / Lead</option>
+              <option value="ativo">Em atendimento</option>
+              <option value="retorno">Aguardando retorno</option>
+              <option value="inativo">Inativo</option>
+            </select>
+          </label>
           <label style="grid-column: 1 / -1;">Observações
             <textarea id="pac-obs" rows="3" placeholder="Alergias, histórico relevante, etc."></textarea>
           </label>
@@ -842,7 +949,55 @@
     </div>
   </div>
 
-  <script src="data.js?v=6"></script>
-  <script src="app.js?v=6"></script>
+  <!-- ====================== MODAL: meta comercial ====================== -->
+  <div class="modal" id="modal-meta">
+    <div class="modal-content" style="max-width:560px;">
+      <header>
+        <h3 id="meta-titulo">Nova meta</h3>
+        <button class="modal-close" data-close-modal>&times;</button>
+      </header>
+      <div class="modal-body">
+        <div class="form-grid">
+          <label style="grid-column: 1 / -1;">Título da meta
+            <input type="text" id="meta-titulo-input" placeholder="Ex.: R$ 50k em junho" required />
+          </label>
+          <label>Tipo
+            <select id="meta-tipo">
+              <option value="receita">Receita executada (R$)</option>
+              <option value="pacientes">Novos pacientes</option>
+              <option value="procedimentos">Procedimentos realizados</option>
+              <option value="orcamentos">Orçamentos aprovados</option>
+            </select>
+          </label>
+          <label>Valor alvo
+            <input type="number" id="meta-valor" step="1" min="1" />
+          </label>
+          <label>Início
+            <input type="date" id="meta-inicio" required />
+          </label>
+          <label>Término
+            <input type="date" id="meta-fim" required />
+          </label>
+          <label style="grid-column: 1 / -1;">Vincular campanhas (opcional)
+            <select id="meta-campanhas" multiple size="3" style="min-height:80px;"></select>
+            <small>Segure Ctrl/Cmd para selecionar várias.</small>
+          </label>
+          <label style="grid-column: 1 / -1; flex-direction: row; align-items: center; gap: 8px;">
+            <input type="checkbox" id="meta-ativo" checked style="width: auto;" />
+            <span style="font-size: 13px; color: var(--texto);">Meta ativa</span>
+          </label>
+        </div>
+      </div>
+      <footer>
+        <button class="btn-danger" id="meta-excluir" style="display:none;">Excluir</button>
+        <span style="flex:1;"></span>
+        <button class="btn-secondary" data-close-modal>Cancelar</button>
+        <button class="btn-primary" id="meta-salvar">Salvar</button>
+      </footer>
+    </div>
+  </div>
+
+  <script src="data.js?v=7"></script>
+  <script src="app.js?v=7"></script>
 </body>
 </html>
