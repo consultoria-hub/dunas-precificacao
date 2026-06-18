@@ -741,6 +741,8 @@ function entrarNoApp() {
   renderHistorico();
   renderCRM();
   renderAgenda();
+  aplicarAgendaView();
+  renderCalendario();
   renderCRC();
   renderMetas();
   renderDashboard();
@@ -1377,8 +1379,115 @@ function renderAgenda() {
 }
 
 document.getElementById("ag-filtro").addEventListener("change", renderAgenda);
-document.getElementById("ag-busca").addEventListener("input", renderAgenda);
+document.getElementById("ag-busca").addEventListener("input", () => { renderAgenda(); renderCalendario(); });
 document.getElementById("novo-agendamento").addEventListener("click", () => abrirModalAgendamento());
+
+// ============================================================
+// AGENDA — Visualização Calendário
+// ============================================================
+let agendaView = localStorage.getItem("dunas.agendaView") || "calendario";
+let calMes = new Date();
+calMes.setDate(1);
+
+const MESES_BR = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+
+function aplicarAgendaView() {
+  document.getElementById("ag-view-calendario").style.display = agendaView === "calendario" ? "block" : "none";
+  document.getElementById("ag-view-lista").style.display = agendaView === "lista" ? "block" : "none";
+  document.querySelectorAll(".view-toggle-btn").forEach(b =>
+    b.classList.toggle("active", b.dataset.view === agendaView)
+  );
+}
+
+document.querySelectorAll(".view-toggle-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    agendaView = btn.dataset.view;
+    localStorage.setItem("dunas.agendaView", agendaView);
+    aplicarAgendaView();
+    if (agendaView === "calendario") renderCalendario();
+    else renderAgenda();
+  });
+});
+
+document.getElementById("cal-prev").addEventListener("click", () => {
+  calMes.setMonth(calMes.getMonth() - 1);
+  renderCalendario();
+});
+document.getElementById("cal-next").addEventListener("click", () => {
+  calMes.setMonth(calMes.getMonth() + 1);
+  renderCalendario();
+});
+document.getElementById("cal-hoje").addEventListener("click", () => {
+  calMes = new Date();
+  calMes.setDate(1);
+  renderCalendario();
+});
+
+function renderCalendario() {
+  const grid = document.getElementById("cal-grid");
+  if (!grid) return;
+  const year = calMes.getFullYear();
+  const month = calMes.getMonth();
+  document.getElementById("cal-titulo").textContent = `${MESES_BR[month]} ${year}`;
+
+  // Primeiro dia do mês e seu dia da semana (0=Dom)
+  const primeiro = new Date(year, month, 1);
+  const inicioGrid = new Date(year, month, 1 - primeiro.getDay());
+  const hojeStr = hojeISO();
+
+  const busca = document.getElementById("ag-busca").value.toLowerCase().trim();
+
+  let html = "";
+  for (let i = 0; i < 42; i++) {
+    const d = new Date(inicioGrid);
+    d.setDate(inicioGrid.getDate() + i);
+    const ds = d.toISOString().slice(0, 10);
+    const otherMonth = d.getMonth() !== month;
+    const isToday = ds === hojeStr;
+
+    const ags = agendamentos
+      .filter(a => a.data === ds)
+      .filter(a => !busca ||
+        nomePaciente(a.pacienteId).toLowerCase().includes(busca) ||
+        (a.procedimento || "").toLowerCase().includes(busca))
+      .sort((a, b) => a.hora.localeCompare(b.hora));
+
+    const visiveis = ags.slice(0, 3);
+    const restante = ags.length - visiveis.length;
+
+    html += `
+      <div class="cal-day ${otherMonth ? "other-month" : ""} ${isToday ? "today" : ""}" data-data="${ds}">
+        <div class="cal-day-num">
+          <span>${d.getDate()}</span>
+          ${ags.length > 0 ? `<span class="cal-day-count">${ags.length}</span>` : ""}
+        </div>
+        ${visiveis.map(a => `
+          <div class="cal-appt ${a.status}" data-ag-id="${a.id}" title="${escapeHtml(nomePaciente(a.pacienteId))} — ${escapeHtml(a.procedimento || "Consulta")}">
+            <span class="cal-appt-hora">${a.hora}</span>
+            <span>${escapeHtml(nomePaciente(a.pacienteId))}</span>
+          </div>
+        `).join("")}
+        ${restante > 0 ? `<div class="cal-appt-mais">+${restante} mais</div>` : ""}
+      </div>`;
+  }
+  grid.innerHTML = html;
+
+  // Click no agendamento → abre modal
+  grid.querySelectorAll(".cal-appt[data-ag-id]").forEach(el => {
+    el.addEventListener("click", (e) => {
+      e.stopPropagation();
+      abrirModalAgendamento(el.dataset.agId);
+    });
+  });
+
+  // Click no dia vazio → novo agendamento já com data preenchida
+  grid.querySelectorAll(".cal-day").forEach(el => {
+    el.addEventListener("click", () => {
+      abrirModalAgendamento();
+      document.getElementById("ag-data").value = el.dataset.data;
+    });
+  });
+}
 
 function abrirModalAgendamento(id) {
   agendamentoEditando = id ? agendamentos.find(a => a.id === id) : null;
@@ -1430,6 +1539,7 @@ document.getElementById("ag-salvar").addEventListener("click", () => {
   salvar(STORAGE_KEYS.agendamentos, agendamentos);
   document.getElementById("modal-agendamento").classList.remove("open");
   renderAgenda();
+  renderCalendario();
   renderDashboard();
   renderCRC();
   renderNotificacoes();
@@ -1443,6 +1553,7 @@ document.getElementById("ag-excluir").addEventListener("click", () => {
   salvar(STORAGE_KEYS.agendamentos, agendamentos);
   document.getElementById("modal-agendamento").classList.remove("open");
   renderAgenda();
+  renderCalendario();
   renderDashboard();
   renderNotificacoes();
 });
