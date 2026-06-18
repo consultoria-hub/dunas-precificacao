@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Dunas Health — Precificação Odontológica</title>
-  <link rel="stylesheet" href="styles.css?v=7" />
+  <link rel="stylesheet" href="styles.css?v=8" />
 </head>
 <body>
 
@@ -343,6 +343,7 @@
           </div>
           <div class="patient-actions">
             <span class="status-badge" id="pac-detalhe-status">—</span>
+            <button class="btn-primary btn-small" id="pac-novo-orcamento">+ Orçamento</button>
             <button class="btn-secondary btn-small" id="pac-detalhe-editar">Editar dados</button>
           </div>
         </div>
@@ -707,7 +708,10 @@
         <div class="form-grid">
           <label>
             Paciente / Cliente
-            <input type="text" id="m-paciente" placeholder="Nome (opcional)" />
+            <div style="display:flex; gap:6px; align-items:stretch;">
+              <select id="m-paciente" style="flex:1;"></select>
+              <button type="button" class="btn-secondary btn-small" id="m-novo-paciente" title="Cadastrar novo paciente">+ Novo</button>
+            </div>
           </label>
           <label>
             Tempo de cadeira (min)
@@ -997,7 +1001,7 @@
     </div>
   </div>
 
-  <script src="data.js?v=7"></script>
-  <script src="app.js?v=7"></script>
+  <script src="data.js?v=8"></script>
+  <script src="app.js?v=8"></script>
 </body>
 </html>

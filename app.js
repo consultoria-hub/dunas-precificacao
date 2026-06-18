@@ -60,6 +60,18 @@ let pacienteDetalheId = null;
 pacientes.forEach(p => { if (!p.status) p.status = "novo"; });
 pacientes.forEach(p => { if (!p.prontuario) p.prontuario = []; });
 
+// Migra orçamentos antigos: tenta vincular por nome de paciente
+historico.forEach(o => {
+  if (!o.pacienteId && o.paciente) {
+    const match = pacientes.find(p => p.nome.toLowerCase() === o.paciente.toLowerCase());
+    if (match) o.pacienteId = match.id;
+  }
+});
+salvar(STORAGE_KEYS.historico, historico);
+
+// Estado: paciente pré-selecionado para próxima precificação
+let pacientePreSelecionado = null;
+
 const STATUS_LABELS = {
   pendente: "Pendente",
   aprovado: "Aprovado",
@@ -340,13 +352,23 @@ document.getElementById("busca").addEventListener("input", renderServicos);
 // ============================================================
 // Modal de precificação
 // ============================================================
+function popularPacienteSelect(selectEl, selectedId) {
+  selectEl.innerHTML = '<option value="">— Sem vínculo —</option>' +
+    pacientes
+      .slice()
+      .sort((a, b) => a.nome.localeCompare(b.nome))
+      .map(p => `<option value="${p.id}" ${p.id === selectedId ? "selected" : ""}>${escapeHtml(p.nome)}</option>`)
+      .join("");
+}
+
 function abrirModal(espId, idx) {
   const esp = catalogo.find((e) => e.id === espId);
   const servico = esp.servicos[idx];
   servicoEditando = { espId, espNome: esp.nome, idx, servico };
 
   document.getElementById("modal-titulo").textContent = `${esp.nome} — ${servico.nome}`;
-  document.getElementById("m-paciente").value = "";
+  popularPacienteSelect(document.getElementById("m-paciente"), pacientePreSelecionado);
+  pacientePreSelecionado = null; // consome
   document.getElementById("m-tempo").value = servico.tempo;
   document.getElementById("m-custo-direto").value = servico.custoDireto;
   document.getElementById("m-comissao").value = servico.comissao ?? parametros.comissao;
@@ -364,25 +386,32 @@ function fecharModal() {
   servicoEditando = null;
 }
 
-function fecharTodosModais() {
-  document.querySelectorAll(".modal.open").forEach(m => m.classList.remove("open"));
-  servicoEditando = null;
-  orcamentoAtivo = null;
+function fecharModalEspecifico(modalEl) {
+  if (!modalEl) return;
+  modalEl.classList.remove("open");
+  if (modalEl.id === "modal-precificacao") {
+    servicoEditando = null;
+    aguardandoNovoPaciente = false;
+  }
+  if (modalEl.id === "modal-orcamento") orcamentoAtivo = null;
 }
 
-document.querySelectorAll("[data-close-modal]").forEach((b) =>
-  b.addEventListener("click", fecharTodosModais)
+document.querySelectorAll("[data-close-modal]").forEach(b =>
+  b.addEventListener("click", () => fecharModalEspecifico(b.closest(".modal")))
 );
 
 document.querySelectorAll(".modal").forEach(modal => {
   modal.addEventListener("click", (e) => {
-    if (e.target === modal) fecharTodosModais();
+    if (e.target === modal) fecharModalEspecifico(modal);
   });
 });
 
 function lerInputsModal() {
+  const pacId = document.getElementById("m-paciente").value;
+  const pacNome = pacId ? (pacientes.find(p => p.id === pacId)?.nome || "") : "";
   return {
-    paciente: document.getElementById("m-paciente").value.trim(),
+    pacienteId: pacId || null,
+    paciente: pacNome,
     tempo: parseFloat(document.getElementById("m-tempo").value) || 0,
     custoDireto: parseFloat(document.getElementById("m-custo-direto").value) || 0,
     comissao: parseFloat(document.getElementById("m-comissao").value) || 0,
@@ -1043,6 +1072,21 @@ document.getElementById("pac-detalhe-editar").addEventListener("click", () => {
   if (pacienteDetalheId) abrirModalPaciente(pacienteDetalheId);
 });
 
+document.getElementById("pac-novo-orcamento").addEventListener("click", () => {
+  if (!pacienteDetalheId) return;
+  pacientePreSelecionado = pacienteDetalheId;
+  abrirAba("precificacao");
+  const p = pacientes.find(x => x.id === pacienteDetalheId);
+  flash(`Selecione um procedimento para ${p?.nome || "o paciente"}`, 3500);
+});
+
+// Botão "+ Novo" dentro do modal de precificação cadastra paciente sem fechar a precificação
+let aguardandoNovoPaciente = false;
+document.getElementById("m-novo-paciente").addEventListener("click", () => {
+  aguardandoNovoPaciente = true;
+  abrirModalPaciente();
+});
+
 // Sub-tabs
 document.querySelectorAll(".sub-tab").forEach(btn => {
   btn.addEventListener("click", () => {
@@ -1104,7 +1148,7 @@ function renderPacienteProcedimentos(p) {
     .sort((a, b) => (b.data + b.hora).localeCompare(a.data + a.hora));
 
   const orcsExec = historico
-    .filter(o => o.paciente === p.nome && o.status === "executado")
+    .filter(o => (o.pacienteId === p.id || (!o.pacienteId && o.paciente === p.nome)) && o.status === "executado")
     .sort((a, b) => b.criadoEm.localeCompare(a.criadoEm));
 
   const div = document.getElementById("pac-procedimentos-lista");
@@ -1175,7 +1219,7 @@ document.getElementById("ag-novo-paciente").addEventListener("click", () => {
 
 function renderPacienteOrcamentos(p) {
   const orcs = historico
-    .filter(o => o.paciente === p.nome)
+    .filter(o => o.pacienteId === p.id || (!o.pacienteId && o.paciente === p.nome))
     .sort((a, b) => b.criadoEm.localeCompare(a.criadoEm));
   const div = document.getElementById("pac-orcamentos-lista");
   div.innerHTML = orcs.length
@@ -1233,11 +1277,14 @@ document.getElementById("pac-salvar").addEventListener("click", () => {
     observacoes: document.getElementById("pac-obs").value.trim()
   };
 
+  let novoId = null;
   if (pacienteEditando) {
     Object.assign(pacienteEditando, dados);
+    novoId = pacienteEditando.id;
   } else {
+    novoId = "p-" + Date.now() + "-" + Math.random().toString(36).slice(2, 6);
     pacientes.push({
-      id: "p-" + Date.now() + "-" + Math.random().toString(36).slice(2, 6),
+      id: novoId,
       ...dados,
       prontuario: [],
       criadoEm: new Date().toISOString()
@@ -1250,6 +1297,12 @@ document.getElementById("pac-salvar").addEventListener("click", () => {
   renderCRC();
   renderNotificacoes();
   if (pacienteDetalheId) renderDetalhePaciente();
+
+  // Se viemos do modal de precificação, atualiza o select e seleciona o novo
+  if (aguardandoNovoPaciente) {
+    aguardandoNovoPaciente = false;
+    popularPacienteSelect(document.getElementById("m-paciente"), novoId);
+  }
   flash("Paciente salvo");
 });
 
