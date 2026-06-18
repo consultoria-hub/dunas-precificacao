@@ -665,42 +665,39 @@ main {
   position: fixed;
   inset: 0;
   background: var(--bg);
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  padding: 32px 20px;
   z-index: 200;
   overflow-y: auto;
+  padding: 24px 16px;
 }
 .auth-box {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 16px;
-  padding: 32px 28px;
+  padding: 28px 24px;
   width: 100%;
-  max-width: 420px;
+  max-width: 400px;
   box-shadow: var(--sombra);
-  margin: auto;
+  margin: 0 auto;
 }
 .auth-brand {
   text-align: center;
-  margin-bottom: 28px;
+  margin-bottom: 22px;
 }
 .auth-brand h1 {
-  margin-top: 14px;
-  font-size: 22px;
+  margin-top: 12px;
+  font-size: 20px;
   color: var(--accent);
 }
 .auth-brand p {
   margin: 4px 0 0;
-  font-size: 13px;
+  font-size: 12px;
   color: var(--texto-claro);
 }
 .logo-lg {
-  width: 64px;
-  height: 64px;
-  font-size: 24px;
-  border-radius: 14px;
+  width: 56px;
+  height: 56px;
+  font-size: 22px;
+  border-radius: 12px;
   margin: 0 auto;
 }
 .auth-form h2 {
@@ -717,7 +714,11 @@ main {
   color: var(--texto-claro);
   font-weight: 500;
   gap: 4px;
-  margin-bottom: 14px;
+  margin-bottom: 12px;
+}
+.auth-form input[type="text"],
+.auth-form input[type="password"] {
+  padding: 9px 12px;
 }
 .auth-form input[type="text"],
 .auth-form input[type="password"],
@@ -793,9 +794,13 @@ main {
 #setup-logo-preview {
   align-items: center;
   gap: 12px;
-  margin-bottom: 14px;
+  margin-bottom: 12px;
 }
-#setup-logo-preview .logo-preview-wrap { margin-bottom: 0; }
+#setup-logo-preview .logo-preview-wrap {
+  width: 56px;
+  height: 56px;
+  flex-shrink: 0;
+}
 .logo-upload-actions { display: flex; flex-direction: column; gap: 6px; }
 .btn-small { padding: 6px 12px; font-size: 12px; }
 
