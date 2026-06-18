@@ -203,3 +203,30 @@ const FORMAS_PAGAMENTO_PADRAO = [
   { nome: "Crédito 6x", taxa: 7.99 },
   { nome: "Crédito 12x", taxa: 12.99 }
 ];
+
+// Pacientes — começa vazio, usuário cadastra
+const PACIENTES_PADRAO = [];
+
+// Agendamentos — começa vazio
+const AGENDAMENTOS_PADRAO = [];
+
+// Campanhas promocionais — exemplos iniciais
+const CAMPANHAS_PADRAO = [
+  {
+    id: "c-bem-vindo",
+    titulo: "Limpeza de boas-vindas",
+    descricao: "15% de desconto na primeira profilaxia para novos pacientes.",
+    dataInicio: "2026-01-01",
+    dataFim: "2026-12-31",
+    ativo: true
+  }
+];
+
+// Status de agendamento
+const STATUS_AGENDA = {
+  agendado: { label: "Agendado", cor: "info" },
+  confirmado: { label: "Confirmado", cor: "sucesso" },
+  realizado: { label: "Realizado", cor: "sucesso" },
+  cancelado: { label: "Cancelado", cor: "erro" },
+  faltou: { label: "Faltou", cor: "alerta" }
+};

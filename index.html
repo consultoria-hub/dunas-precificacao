@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Dunas Health — Precificação Odontológica</title>
-  <link rel="stylesheet" href="styles.css?v=5" />
+  <link rel="stylesheet" href="styles.css?v=6" />
 </head>
 <body>
 
@@ -119,22 +119,236 @@
       </div>
 
       <nav class="tabs">
-        <button class="tab active" data-tab="historico">Histórico</button>
-        <button class="tab" data-tab="precificacao">Precificação</button>
+        <button class="tab active" data-tab="dashboard">📊 Dashboard</button>
+        <button class="tab" data-tab="agenda">📅 Agenda</button>
+        <button class="tab" data-tab="crm">👥 CRM</button>
+        <button class="tab" data-tab="crc">💬 CRC</button>
+        <button class="tab" data-tab="historico">📋 Orçamentos</button>
+        <button class="tab" data-tab="precificacao">💰 Precificação</button>
         <button class="tab" data-tab="custos-fixos">Custos Fixos</button>
         <button class="tab" data-tab="parametros">Parâmetros</button>
         <button class="tab" data-tab="catalogo">Catálogo</button>
+        <button class="theme-toggle notif-btn" id="notif-btn" title="Notificações">
+          🔔<span class="notif-badge" id="notif-badge" style="display:none;">0</span>
+        </button>
         <button class="theme-toggle" id="theme-toggle" title="Alternar tema">
           <span class="theme-icon-dark">🌙</span>
           <span class="theme-icon-light">☀️</span>
         </button>
         <button class="theme-toggle" id="btn-logout" title="Sair">↩</button>
       </nav>
+
+      <!-- Painel de notificações -->
+      <div class="notif-panel" id="notif-panel">
+        <div class="notif-header">
+          <h3>Notificações</h3>
+          <button class="btn-link-sm" id="marcar-lidas">Marcar todas como lidas</button>
+        </div>
+        <div class="notif-list" id="notif-list"></div>
+      </div>
     </header>
 
     <main>
+
+    <!-- ====================== TAB: DASHBOARD ====================== -->
+    <section id="dashboard" class="panel active">
+      <div class="dash-welcome">
+        <div>
+          <h2 id="dash-saudacao">Bem-vindo</h2>
+          <p class="hint" id="dash-data"></p>
+        </div>
+        <div class="dash-actions">
+          <button class="btn-secondary" id="qa-novo-paciente">+ Paciente</button>
+          <button class="btn-secondary" id="qa-novo-agendamento">+ Agendamento</button>
+          <button class="btn-primary" id="qa-novo-orcamento">+ Orçamento</button>
+        </div>
+      </div>
+
+      <div class="dash-grid">
+        <div class="dash-card kpi info">
+          <span class="kpi-label">Agendamentos hoje</span>
+          <span class="kpi-valor" id="kpi-agenda-hoje">0</span>
+          <span class="kpi-sub" id="kpi-agenda-prox">Próximo: —</span>
+        </div>
+        <div class="dash-card kpi alerta">
+          <span class="kpi-label">Retornos pendentes</span>
+          <span class="kpi-valor" id="kpi-retornos">0</span>
+          <span class="kpi-sub">Pacientes para reagendar</span>
+        </div>
+        <div class="dash-card kpi sucesso">
+          <span class="kpi-label">Aniversariantes do mês</span>
+          <span class="kpi-valor" id="kpi-aniversarios">0</span>
+          <span class="kpi-sub">Envie uma mensagem</span>
+        </div>
+        <div class="dash-card kpi accent">
+          <span class="kpi-label">Orçamentos pendentes</span>
+          <span class="kpi-valor" id="kpi-orc-pendentes">0</span>
+          <span class="kpi-sub" id="kpi-receita-mes">Receita executada: R$ 0,00</span>
+        </div>
+      </div>
+
+      <div class="dash-grid-2">
+        <div class="dash-card">
+          <div class="dash-card-header">
+            <h3>📅 Próximos agendamentos</h3>
+            <button class="btn-link-sm" data-go-tab="agenda">Ver agenda →</button>
+          </div>
+          <div id="dash-agenda-lista" class="dash-list"></div>
+        </div>
+
+        <div class="dash-card">
+          <div class="dash-card-header">
+            <h3>🎂 Aniversariantes</h3>
+            <button class="btn-link-sm" data-go-tab="crc">Ver todos →</button>
+          </div>
+          <div id="dash-aniversariantes" class="dash-list"></div>
+        </div>
+
+        <div class="dash-card">
+          <div class="dash-card-header">
+            <h3>📣 Campanhas ativas</h3>
+            <button class="btn-link-sm" data-go-tab="crc">Gerenciar →</button>
+          </div>
+          <div id="dash-campanhas" class="dash-list"></div>
+        </div>
+
+        <div class="dash-card">
+          <div class="dash-card-header">
+            <h3>🔔 Notificações recentes</h3>
+            <button class="btn-link-sm" id="dash-ver-notifs">Ver todas →</button>
+          </div>
+          <div id="dash-notifs" class="dash-list"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====================== TAB: AGENDA ====================== -->
+    <section id="agenda" class="panel">
+      <div class="card-wide">
+        <div class="catalog-header">
+          <div>
+            <h2>Agenda</h2>
+            <p class="hint">Agendamentos, retornos e confirmações.</p>
+          </div>
+          <div class="actions">
+            <select id="ag-filtro" class="select">
+              <option value="proximos">Próximos</option>
+              <option value="hoje">Hoje</option>
+              <option value="semana">Esta semana</option>
+              <option value="mes">Este mês</option>
+              <option value="todos">Todos</option>
+              <option value="retornos">Somente retornos</option>
+            </select>
+            <input type="text" id="ag-busca" placeholder="Buscar paciente ou procedimento..." />
+            <button class="btn-primary" id="novo-agendamento">+ Novo agendamento</button>
+          </div>
+        </div>
+
+        <div class="tabela-wrapper">
+          <table class="tabela-catalogo">
+            <thead>
+              <tr>
+                <th style="width:140px;">Data/Hora</th>
+                <th>Paciente</th>
+                <th>Procedimento</th>
+                <th style="width:90px;">Duração</th>
+                <th style="width:90px;">Tipo</th>
+                <th style="width:120px;">Status</th>
+                <th style="width:50px;"></th>
+              </tr>
+            </thead>
+            <tbody id="tabela-agenda-body"></tbody>
+          </table>
+          <p id="agenda-vazia" class="vazio">Nenhum agendamento. Clique em <b>+ Novo agendamento</b>.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====================== TAB: CRM (Pacientes) ====================== -->
+    <section id="crm" class="panel">
+      <div class="card-wide">
+        <div class="catalog-header">
+          <div>
+            <h2>CRM — Pacientes</h2>
+            <p class="hint">Base de pacientes do consultório.</p>
+          </div>
+          <div class="actions">
+            <input type="text" id="crm-busca" placeholder="Buscar por nome, telefone ou email..." />
+            <button class="btn-primary" id="novo-paciente">+ Novo paciente</button>
+          </div>
+        </div>
+
+        <div class="stats-bar">
+          <div class="stat-card destaque">
+            <span class="stat-label">Total de pacientes</span>
+            <span class="stat-valor" id="crm-total">0</span>
+          </div>
+          <div class="stat-card sucesso-card">
+            <span class="stat-label">Ativos (últimos 6 meses)</span>
+            <span class="stat-valor" id="crm-ativos">0</span>
+          </div>
+          <div class="stat-card alerta-card">
+            <span class="stat-label">Inativos (sem retorno)</span>
+            <span class="stat-valor" id="crm-inativos">0</span>
+          </div>
+        </div>
+
+        <div class="tabela-wrapper">
+          <table class="tabela-catalogo">
+            <thead>
+              <tr>
+                <th>Nome</th>
+                <th>Telefone</th>
+                <th>Email</th>
+                <th style="width:120px;">Nascimento</th>
+                <th style="width:140px;">Último atendimento</th>
+                <th style="width:50px;"></th>
+              </tr>
+            </thead>
+            <tbody id="tabela-crm-body"></tbody>
+          </table>
+          <p id="crm-vazio" class="vazio">Nenhum paciente cadastrado. Clique em <b>+ Novo paciente</b>.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====================== TAB: CRC ====================== -->
+    <section id="crc" class="panel">
+      <div class="card-wide">
+        <h2>CRC — Central de Relacionamento</h2>
+        <p class="hint">Acompanhamento de relacionamento e ações com pacientes.</p>
+
+        <div class="crc-grid">
+          <div class="dash-card">
+            <div class="dash-card-header">
+              <h3>🎂 Aniversariantes do mês</h3>
+              <span class="badge-count" id="crc-aniv-count">0</span>
+            </div>
+            <div id="crc-aniversariantes" class="dash-list"></div>
+          </div>
+
+          <div class="dash-card">
+            <div class="dash-card-header">
+              <h3>⏰ Sugestões de retorno</h3>
+              <span class="badge-count" id="crc-retorno-count">0</span>
+            </div>
+            <p class="hint">Pacientes sem atendimento há mais de 6 meses.</p>
+            <div id="crc-sugestoes" class="dash-list"></div>
+          </div>
+
+          <div class="dash-card" style="grid-column: 1 / -1;">
+            <div class="dash-card-header">
+              <h3>📣 Campanhas promocionais</h3>
+              <button class="btn-primary btn-small" id="nova-campanha">+ Nova campanha</button>
+            </div>
+            <div id="crc-campanhas" class="dash-list"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- ====================== TAB: HISTÓRICO ====================== -->
-    <section id="historico" class="panel active">
+    <section id="historico" class="panel">
       <div class="card-wide">
         <div class="catalog-header">
           <div>
@@ -505,7 +719,130 @@
     </div>
   </div>
 
-  <script src="data.js?v=5"></script>
-  <script src="app.js?v=5"></script>
+  <!-- ====================== MODAL: paciente ====================== -->
+  <div class="modal" id="modal-paciente">
+    <div class="modal-content" style="max-width:560px;">
+      <header>
+        <h3 id="pac-titulo">Novo paciente</h3>
+        <button class="modal-close" data-close-modal>&times;</button>
+      </header>
+      <div class="modal-body">
+        <div class="form-grid">
+          <label>Nome completo
+            <input type="text" id="pac-nome" required />
+          </label>
+          <label>Telefone / WhatsApp
+            <input type="text" id="pac-telefone" placeholder="(11) 98765-4321" />
+          </label>
+          <label>E-mail
+            <input type="email" id="pac-email" />
+          </label>
+          <label>Data de nascimento
+            <input type="date" id="pac-nascimento" />
+          </label>
+          <label style="grid-column: 1 / -1;">Observações
+            <textarea id="pac-obs" rows="3" placeholder="Alergias, histórico relevante, etc."></textarea>
+          </label>
+        </div>
+        <div id="pac-info" class="info-box" style="display:none;"></div>
+      </div>
+      <footer>
+        <button class="btn-danger" id="pac-excluir" style="display:none;">Excluir</button>
+        <span style="flex:1;"></span>
+        <button class="btn-secondary" data-close-modal>Cancelar</button>
+        <button class="btn-primary" id="pac-salvar">Salvar</button>
+      </footer>
+    </div>
+  </div>
+
+  <!-- ====================== MODAL: agendamento ====================== -->
+  <div class="modal" id="modal-agendamento">
+    <div class="modal-content" style="max-width:600px;">
+      <header>
+        <h3 id="ag-titulo">Novo agendamento</h3>
+        <button class="modal-close" data-close-modal>&times;</button>
+      </header>
+      <div class="modal-body">
+        <div class="form-grid">
+          <label style="grid-column: 1 / -1;">Paciente
+            <select id="ag-paciente" required></select>
+          </label>
+          <label>Data
+            <input type="date" id="ag-data" required />
+          </label>
+          <label>Hora
+            <input type="time" id="ag-hora" required />
+          </label>
+          <label>Duração (min)
+            <input type="number" id="ag-duracao" value="60" step="15" />
+          </label>
+          <label>Status
+            <select id="ag-status">
+              <option value="agendado">Agendado</option>
+              <option value="confirmado">Confirmado</option>
+              <option value="realizado">Realizado</option>
+              <option value="cancelado">Cancelado</option>
+              <option value="faltou">Faltou</option>
+            </select>
+          </label>
+          <label style="grid-column: 1 / -1;">Procedimento
+            <input type="text" id="ag-procedimento" placeholder="Ex.: Limpeza + avaliação" />
+          </label>
+          <label style="grid-column: 1 / -1;">Observações
+            <textarea id="ag-obs" rows="2"></textarea>
+          </label>
+          <label style="grid-column: 1 / -1; flex-direction: row; align-items: center; gap: 8px;">
+            <input type="checkbox" id="ag-retorno" style="width: auto;" />
+            <span style="font-size: 13px; color: var(--texto);">Este agendamento é um retorno de outra consulta</span>
+          </label>
+        </div>
+      </div>
+      <footer>
+        <button class="btn-danger" id="ag-excluir" style="display:none;">Excluir</button>
+        <span style="flex:1;"></span>
+        <button class="btn-secondary" data-close-modal>Cancelar</button>
+        <button class="btn-primary" id="ag-salvar">Salvar</button>
+      </footer>
+    </div>
+  </div>
+
+  <!-- ====================== MODAL: campanha ====================== -->
+  <div class="modal" id="modal-campanha">
+    <div class="modal-content" style="max-width:520px;">
+      <header>
+        <h3 id="camp-titulo">Nova campanha</h3>
+        <button class="modal-close" data-close-modal>&times;</button>
+      </header>
+      <div class="modal-body">
+        <div class="form-grid">
+          <label style="grid-column: 1 / -1;">Título
+            <input type="text" id="camp-titulo-input" required />
+          </label>
+          <label style="grid-column: 1 / -1;">Descrição
+            <textarea id="camp-descricao" rows="3"></textarea>
+          </label>
+          <label>Início
+            <input type="date" id="camp-inicio" required />
+          </label>
+          <label>Término
+            <input type="date" id="camp-fim" required />
+          </label>
+          <label style="grid-column: 1 / -1; flex-direction: row; align-items: center; gap: 8px;">
+            <input type="checkbox" id="camp-ativo" checked style="width: auto;" />
+            <span style="font-size: 13px; color: var(--texto);">Campanha ativa</span>
+          </label>
+        </div>
+      </div>
+      <footer>
+        <button class="btn-danger" id="camp-excluir" style="display:none;">Excluir</button>
+        <span style="flex:1;"></span>
+        <button class="btn-secondary" data-close-modal>Cancelar</button>
+        <button class="btn-primary" id="camp-salvar">Salvar</button>
+      </footer>
+    </div>
+  </div>
+
+  <script src="data.js?v=6"></script>
+  <script src="app.js?v=6"></script>
 </body>
 </html>

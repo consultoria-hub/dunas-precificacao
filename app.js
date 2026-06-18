@@ -8,7 +8,11 @@ const STORAGE_KEYS = {
   custosFixos: "dunas.custosFixos",
   historico: "dunas.historico",
   tema: "dunas.tema",
-  conta: "dunas.conta"   // { clinicaNome, usuarioNome, senha, logoBase64 }
+  conta: "dunas.conta",
+  pacientes: "dunas.pacientes",
+  agendamentos: "dunas.agendamentos",
+  campanhas: "dunas.campanhas",
+  notifsLidas: "dunas.notifsLidas"
 };
 
 // ============================================================
@@ -37,9 +41,16 @@ let catalogo = carregar(STORAGE_KEYS.catalogo, CATALOGO_PADRAO);
 let parametros = carregar(STORAGE_KEYS.parametros, PARAMETROS_PADRAO);
 let custosFixos = carregar(STORAGE_KEYS.custosFixos, CUSTOS_FIXOS_PADRAO);
 let historico = carregar(STORAGE_KEYS.historico, []);
+let pacientes = carregar(STORAGE_KEYS.pacientes, PACIENTES_PADRAO);
+let agendamentos = carregar(STORAGE_KEYS.agendamentos, AGENDAMENTOS_PADRAO);
+let campanhas = carregar(STORAGE_KEYS.campanhas, CAMPANHAS_PADRAO);
+let notifsLidas = carregar(STORAGE_KEYS.notifsLidas, []);
 let especialidadeAtiva = catalogo[0]?.id;
 let servicoEditando = null;
 let orcamentoAtivo = null;
+let pacienteEditando = null;
+let agendamentoEditando = null;
+let campanhaEditando = null;
 
 const STATUS_LABELS = {
   pendente: "Pendente",
@@ -345,19 +356,19 @@ function fecharModal() {
   servicoEditando = null;
 }
 
+function fecharTodosModais() {
+  document.querySelectorAll(".modal.open").forEach(m => m.classList.remove("open"));
+  servicoEditando = null;
+  orcamentoAtivo = null;
+}
+
 document.querySelectorAll("[data-close-modal]").forEach((b) =>
-  b.addEventListener("click", () => {
-    fecharModal();
-    fecharModalOrcamento();
-  })
+  b.addEventListener("click", fecharTodosModais)
 );
 
 document.querySelectorAll(".modal").forEach(modal => {
   modal.addEventListener("click", (e) => {
-    if (e.target === modal) {
-      fecharModal();
-      fecharModalOrcamento();
-    }
+    if (e.target === modal) fecharTodosModais();
   });
 });
 
@@ -691,9 +702,696 @@ function entrarNoApp() {
   renderCatalogo();
   renderCustosFixos();
   renderHistorico();
+  renderCRM();
+  renderAgenda();
+  renderCRC();
+  renderDashboard();
+  renderNotificacoes();
   const primeiroNome = conta.usuarioNome.split(" ")[0];
   flash(`Bem-vindo(a), ${primeiroNome}! 👋`, 3500);
 }
+
+// ============================================================
+// DATAS / HELPERS
+// ============================================================
+const DIAS_MS = 24 * 60 * 60 * 1000;
+function hojeISO() { return new Date().toISOString().slice(0, 10); }
+function diaSemana(d) {
+  return ["Domingo","Segunda","Terça","Quarta","Quinta","Sexta","Sábado"][new Date(d).getDay()];
+}
+function fmtDataCurta(iso) {
+  if (!iso) return "—";
+  const [y, m, d] = iso.split("T")[0].split("-");
+  return `${d}/${m}/${y}`;
+}
+function fmtDataHora(iso) {
+  if (!iso) return "—";
+  return new Date(iso).toLocaleString("pt-BR", { day:"2-digit", month:"2-digit", hour:"2-digit", minute:"2-digit" });
+}
+function diasEntre(d1, d2) {
+  return Math.floor((new Date(d2) - new Date(d1)) / DIAS_MS);
+}
+function mesmoMes(d1, d2) {
+  return new Date(d1).getMonth() === new Date(d2).getMonth();
+}
+function aniversarioEsteMes(dataNasc) {
+  if (!dataNasc) return false;
+  const hoje = new Date();
+  return new Date(dataNasc).getMonth() === hoje.getMonth();
+}
+function aniversarioHoje(dataNasc) {
+  if (!dataNasc) return false;
+  const hoje = new Date();
+  const n = new Date(dataNasc);
+  return n.getDate() === hoje.getDate() && n.getMonth() === hoje.getMonth();
+}
+function idadeAtual(dataNasc) {
+  if (!dataNasc) return null;
+  const hoje = new Date();
+  const n = new Date(dataNasc);
+  let idade = hoje.getFullYear() - n.getFullYear();
+  const m = hoje.getMonth() - n.getMonth();
+  if (m < 0 || (m === 0 && hoje.getDate() < n.getDate())) idade--;
+  return idade;
+}
+
+// Último atendimento de um paciente (data do último agendamento realizado)
+function ultimoAtendimento(pacienteId) {
+  const ags = agendamentos
+    .filter(a => a.pacienteId === pacienteId && a.status === "realizado")
+    .sort((a, b) => (b.data + b.hora).localeCompare(a.data + a.hora));
+  return ags[0] || null;
+}
+
+// ============================================================
+// DASHBOARD
+// ============================================================
+function renderDashboard() {
+  if (!conta) return;
+  const primeiroNome = conta.usuarioNome.split(" ")[0];
+  document.getElementById("dash-saudacao").textContent = `Olá, ${primeiroNome} 👋`;
+  document.getElementById("dash-data").textContent =
+    new Date().toLocaleDateString("pt-BR", { weekday:"long", day:"2-digit", month:"long", year:"numeric" });
+
+  // KPIs
+  const hoje = hojeISO();
+  const agsHoje = agendamentos.filter(a => a.data === hoje && a.status !== "cancelado");
+  document.getElementById("kpi-agenda-hoje").textContent = agsHoje.length;
+  const proxAg = agsHoje.sort((a,b) => a.hora.localeCompare(b.hora))[0];
+  document.getElementById("kpi-agenda-prox").textContent =
+    proxAg ? `Próximo: ${proxAg.hora} — ${nomePaciente(proxAg.pacienteId)}` : "Sem agendamentos";
+
+  const retornosPendentes = agendamentos.filter(a => a.retorno && a.status === "agendado" && a.data >= hoje).length;
+  document.getElementById("kpi-retornos").textContent = retornosPendentes;
+
+  const anivMes = pacientes.filter(p => aniversarioEsteMes(p.dataNascimento)).length;
+  document.getElementById("kpi-aniversarios").textContent = anivMes;
+
+  const orcPend = historico.filter(o => o.status === "pendente").length;
+  document.getElementById("kpi-orc-pendentes").textContent = orcPend;
+  const receita = historico.filter(o => o.status === "executado").reduce((s, o) => s + (o.sugerido || 0), 0);
+  document.getElementById("kpi-receita-mes").textContent = `Receita executada: ${fmt(receita)}`;
+
+  // Lista de próximos agendamentos (5)
+  const proximos = agendamentos
+    .filter(a => a.data >= hoje && a.status !== "cancelado")
+    .sort((a, b) => (a.data + a.hora).localeCompare(b.data + b.hora))
+    .slice(0, 5);
+  document.getElementById("dash-agenda-lista").innerHTML = proximos.length
+    ? proximos.map(a => `
+        <div class="dash-list-item" data-ag-id="${a.id}">
+          <div>
+            <div class="item-titulo">${escapeHtml(nomePaciente(a.pacienteId))}${a.retorno ? ' <span style="color:var(--info);font-size:10px;">↺ retorno</span>' : ''}</div>
+            <div class="item-sub">${escapeHtml(a.procedimento || "Consulta")}</div>
+          </div>
+          <div class="item-meta">${fmtDataCurta(a.data)}<br><b>${a.hora}</b></div>
+        </div>`).join("")
+    : `<div class="dash-list-empty">Nenhum agendamento próximo.</div>`;
+
+  // Aniversariantes do mês (5)
+  const aniv = pacientes
+    .filter(p => aniversarioEsteMes(p.dataNascimento))
+    .sort((a, b) => new Date(a.dataNascimento).getDate() - new Date(b.dataNascimento).getDate())
+    .slice(0, 5);
+  document.getElementById("dash-aniversariantes").innerHTML = aniv.length
+    ? aniv.map(p => {
+        const d = new Date(p.dataNascimento);
+        const hoje_ = aniversarioHoje(p.dataNascimento);
+        return `
+          <div class="dash-list-item" data-pac-id="${p.id}">
+            <div>
+              <div class="item-titulo">${escapeHtml(p.nome)} ${hoje_ ? '🎉' : ''}</div>
+              <div class="item-sub">${idadeAtual(p.dataNascimento)} anos</div>
+            </div>
+            <div class="item-meta">Dia ${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}</div>
+          </div>`;
+      }).join("")
+    : `<div class="dash-list-empty">Nenhum aniversariante este mês.</div>`;
+
+  // Campanhas ativas
+  const ativas = campanhas.filter(c => c.ativo && c.dataFim >= hoje);
+  document.getElementById("dash-campanhas").innerHTML = ativas.length
+    ? ativas.slice(0, 4).map(c => `
+        <div class="dash-list-item">
+          <div>
+            <div class="item-titulo">${escapeHtml(c.titulo)}</div>
+            <div class="item-sub">${escapeHtml(c.descricao || "")}</div>
+          </div>
+          <div class="item-meta">até<br>${fmtDataCurta(c.dataFim)}</div>
+        </div>`).join("")
+    : `<div class="dash-list-empty">Nenhuma campanha ativa.</div>`;
+
+  // Notificações recentes (top 5)
+  const notifs = gerarNotificacoes().slice(0, 5);
+  document.getElementById("dash-notifs").innerHTML = notifs.length
+    ? notifs.map(n => `
+        <div class="dash-list-item">
+          <div class="notif-icon" style="width:28px;height:28px;font-size:14px;">${n.icone}</div>
+          <div>
+            <div class="item-titulo">${escapeHtml(n.titulo)}</div>
+            <div class="item-sub">${escapeHtml(n.sub)}</div>
+          </div>
+        </div>`).join("")
+    : `<div class="dash-list-empty">Tudo em dia!</div>`;
+
+  // Bind clicks
+  document.querySelectorAll("[data-ag-id]").forEach(el => {
+    el.onclick = () => abrirModalAgendamento(el.dataset.agId);
+  });
+  document.querySelectorAll("[data-pac-id]").forEach(el => {
+    el.onclick = () => abrirModalPaciente(el.dataset.pacId);
+  });
+  document.querySelectorAll("[data-go-tab]").forEach(el => {
+    el.onclick = () => abrirAba(el.dataset.goTab);
+  });
+}
+
+function nomePaciente(id) {
+  const p = pacientes.find(x => x.id === id);
+  return p ? p.nome : "(paciente removido)";
+}
+
+// Quick actions
+document.getElementById("qa-novo-paciente").addEventListener("click", () => abrirModalPaciente());
+document.getElementById("qa-novo-agendamento").addEventListener("click", () => abrirModalAgendamento());
+document.getElementById("qa-novo-orcamento").addEventListener("click", () => abrirAba("precificacao"));
+document.getElementById("dash-ver-notifs").addEventListener("click", () => toggleNotifPanel(true));
+
+// ============================================================
+// CRM (Pacientes)
+// ============================================================
+function renderCRM() {
+  const tbody = document.getElementById("tabela-crm-body");
+  const vazio = document.getElementById("crm-vazio");
+  const filtro = document.getElementById("crm-busca").value.toLowerCase().trim();
+  tbody.innerHTML = "";
+
+  const lista = pacientes
+    .filter(p => !filtro || [p.nome, p.telefone, p.email].some(v => (v||"").toLowerCase().includes(filtro)))
+    .sort((a, b) => a.nome.localeCompare(b.nome));
+
+  vazio.style.display = lista.length === 0 ? "block" : "none";
+
+  lista.forEach(p => {
+    const ultimo = ultimoAtendimento(p.id);
+    const tr = document.createElement("tr");
+    tr.style.cursor = "pointer";
+    tr.innerHTML = `
+      <td><b>${escapeHtml(p.nome)}</b></td>
+      <td>${escapeHtml(p.telefone || "—")}</td>
+      <td>${escapeHtml(p.email || "—")}</td>
+      <td>${p.dataNascimento ? fmtDataCurta(p.dataNascimento) : "—"}</td>
+      <td>${ultimo ? fmtDataCurta(ultimo.data) : '<span style="color:var(--texto-mute);">Nunca</span>'}</td>
+      <td><button class="btn-excluir">✏️</button></td>
+    `;
+    tr.onclick = () => abrirModalPaciente(p.id);
+    tbody.appendChild(tr);
+  });
+
+  // Stats
+  const hoje = new Date();
+  const seisMeses = new Date(hoje.getTime() - 180 * DIAS_MS).toISOString().slice(0, 10);
+  let ativos = 0, inativos = 0;
+  pacientes.forEach(p => {
+    const ult = ultimoAtendimento(p.id);
+    if (ult && ult.data >= seisMeses) ativos++;
+    else if (ult) inativos++;
+  });
+  document.getElementById("crm-total").textContent = pacientes.length;
+  document.getElementById("crm-ativos").textContent = ativos;
+  document.getElementById("crm-inativos").textContent = inativos;
+}
+
+document.getElementById("crm-busca").addEventListener("input", renderCRM);
+document.getElementById("novo-paciente").addEventListener("click", () => abrirModalPaciente());
+
+function abrirModalPaciente(id) {
+  pacienteEditando = id ? pacientes.find(p => p.id === id) : null;
+  document.getElementById("pac-titulo").textContent = pacienteEditando ? "Editar paciente" : "Novo paciente";
+  document.getElementById("pac-nome").value = pacienteEditando?.nome || "";
+  document.getElementById("pac-telefone").value = pacienteEditando?.telefone || "";
+  document.getElementById("pac-email").value = pacienteEditando?.email || "";
+  document.getElementById("pac-nascimento").value = pacienteEditando?.dataNascimento || "";
+  document.getElementById("pac-obs").value = pacienteEditando?.observacoes || "";
+  document.getElementById("pac-excluir").style.display = pacienteEditando ? "inline-block" : "none";
+
+  // Info adicional se for edição
+  if (pacienteEditando) {
+    const ult = ultimoAtendimento(pacienteEditando.id);
+    const ags = agendamentos.filter(a => a.pacienteId === pacienteEditando.id).length;
+    const orcs = historico.filter(o => o.paciente === pacienteEditando.nome).length;
+    const info = document.getElementById("pac-info");
+    info.style.display = "block";
+    info.innerHTML = `
+      <b>Histórico:</b>
+      ${ult ? `Último procedimento em ${fmtDataCurta(ult.data)} (${escapeHtml(ult.procedimento || "—")})` : "Sem atendimentos registrados"}<br>
+      Agendamentos: ${ags} · Orçamentos: ${orcs}
+    `;
+  } else {
+    document.getElementById("pac-info").style.display = "none";
+  }
+
+  document.getElementById("modal-paciente").classList.add("open");
+}
+
+document.getElementById("pac-salvar").addEventListener("click", () => {
+  const nome = document.getElementById("pac-nome").value.trim();
+  if (!nome) { alert("Informe o nome do paciente."); return; }
+
+  const dados = {
+    nome,
+    telefone: document.getElementById("pac-telefone").value.trim(),
+    email: document.getElementById("pac-email").value.trim(),
+    dataNascimento: document.getElementById("pac-nascimento").value || null,
+    observacoes: document.getElementById("pac-obs").value.trim()
+  };
+
+  if (pacienteEditando) {
+    Object.assign(pacienteEditando, dados);
+  } else {
+    pacientes.push({
+      id: "p-" + Date.now() + "-" + Math.random().toString(36).slice(2, 6),
+      ...dados,
+      criadoEm: new Date().toISOString()
+    });
+  }
+  salvar(STORAGE_KEYS.pacientes, pacientes);
+  document.getElementById("modal-paciente").classList.remove("open");
+  renderCRM();
+  renderDashboard();
+  renderCRC();
+  renderNotificacoes();
+  flash("Paciente salvo");
+});
+
+document.getElementById("pac-excluir").addEventListener("click", () => {
+  if (!pacienteEditando) return;
+  if (!confirm(`Excluir ${pacienteEditando.nome}? Esta ação é irreversível.`)) return;
+  pacientes = pacientes.filter(p => p.id !== pacienteEditando.id);
+  salvar(STORAGE_KEYS.pacientes, pacientes);
+  document.getElementById("modal-paciente").classList.remove("open");
+  renderCRM();
+  renderDashboard();
+  renderCRC();
+  renderAgenda();
+  renderNotificacoes();
+});
+
+// ============================================================
+// AGENDA
+// ============================================================
+function renderAgenda() {
+  const tbody = document.getElementById("tabela-agenda-body");
+  const vazio = document.getElementById("agenda-vazia");
+  const filtro = document.getElementById("ag-filtro").value;
+  const busca = document.getElementById("ag-busca").value.toLowerCase().trim();
+  tbody.innerHTML = "";
+
+  const hoje = hojeISO();
+  const ms = (d) => new Date(d + "T00:00:00").getTime();
+  const hojeMs = ms(hoje);
+
+  let lista = agendamentos.slice();
+
+  if (filtro === "hoje") lista = lista.filter(a => a.data === hoje);
+  else if (filtro === "semana") lista = lista.filter(a => {
+    const d = ms(a.data);
+    return d >= hojeMs && d <= hojeMs + 7 * DIAS_MS;
+  });
+  else if (filtro === "mes") lista = lista.filter(a => {
+    const d = new Date(a.data + "T00:00:00");
+    const h = new Date();
+    return d.getFullYear() === h.getFullYear() && d.getMonth() === h.getMonth();
+  });
+  else if (filtro === "proximos") lista = lista.filter(a => a.data >= hoje);
+  else if (filtro === "retornos") lista = lista.filter(a => a.retorno);
+
+  if (busca) {
+    lista = lista.filter(a =>
+      nomePaciente(a.pacienteId).toLowerCase().includes(busca) ||
+      (a.procedimento || "").toLowerCase().includes(busca)
+    );
+  }
+
+  lista.sort((a, b) => (a.data + a.hora).localeCompare(b.data + b.hora));
+  vazio.style.display = lista.length === 0 ? "block" : "none";
+
+  lista.forEach(a => {
+    const stConf = STATUS_AGENDA[a.status] || STATUS_AGENDA.agendado;
+    const tr = document.createElement("tr");
+    tr.style.cursor = "pointer";
+    tr.innerHTML = `
+      <td><b>${fmtDataCurta(a.data)}</b><br><span style="color:var(--texto-claro);font-size:11px;">${a.hora}</span></td>
+      <td>${escapeHtml(nomePaciente(a.pacienteId))}</td>
+      <td>${escapeHtml(a.procedimento || "—")}</td>
+      <td>${a.duracao || 60} min</td>
+      <td>${a.retorno ? '<span class="status-badge status-pendente" style="background:var(--info-soft);color:var(--info);">↺ Retorno</span>' : 'Consulta'}</td>
+      <td><span class="status-badge status-${stConf.cor === 'sucesso' ? 'aprovado' : stConf.cor === 'erro' ? 'rejeitado' : stConf.cor === 'info' ? 'executado' : 'pendente'}">${stConf.label}</span></td>
+      <td><button class="btn-excluir">✏️</button></td>
+    `;
+    tr.onclick = () => abrirModalAgendamento(a.id);
+    tbody.appendChild(tr);
+  });
+}
+
+document.getElementById("ag-filtro").addEventListener("change", renderAgenda);
+document.getElementById("ag-busca").addEventListener("input", renderAgenda);
+document.getElementById("novo-agendamento").addEventListener("click", () => abrirModalAgendamento());
+
+function abrirModalAgendamento(id) {
+  agendamentoEditando = id ? agendamentos.find(a => a.id === id) : null;
+  document.getElementById("ag-titulo").textContent = agendamentoEditando ? "Editar agendamento" : "Novo agendamento";
+
+  // Popula select de pacientes
+  const select = document.getElementById("ag-paciente");
+  select.innerHTML = '<option value="">— Selecione —</option>' +
+    pacientes.sort((a,b) => a.nome.localeCompare(b.nome))
+      .map(p => `<option value="${p.id}" ${agendamentoEditando?.pacienteId === p.id ? 'selected' : ''}>${escapeHtml(p.nome)}</option>`).join("");
+
+  document.getElementById("ag-data").value = agendamentoEditando?.data || hojeISO();
+  document.getElementById("ag-hora").value = agendamentoEditando?.hora || "09:00";
+  document.getElementById("ag-duracao").value = agendamentoEditando?.duracao || 60;
+  document.getElementById("ag-status").value = agendamentoEditando?.status || "agendado";
+  document.getElementById("ag-procedimento").value = agendamentoEditando?.procedimento || "";
+  document.getElementById("ag-obs").value = agendamentoEditando?.observacoes || "";
+  document.getElementById("ag-retorno").checked = !!agendamentoEditando?.retorno;
+  document.getElementById("ag-excluir").style.display = agendamentoEditando ? "inline-block" : "none";
+
+  document.getElementById("modal-agendamento").classList.add("open");
+}
+
+document.getElementById("ag-salvar").addEventListener("click", () => {
+  const pacienteId = document.getElementById("ag-paciente").value;
+  const data = document.getElementById("ag-data").value;
+  const hora = document.getElementById("ag-hora").value;
+  if (!pacienteId) { alert("Selecione um paciente."); return; }
+  if (!data || !hora) { alert("Informe data e hora."); return; }
+
+  const dados = {
+    pacienteId, data, hora,
+    duracao: parseInt(document.getElementById("ag-duracao").value) || 60,
+    status: document.getElementById("ag-status").value,
+    procedimento: document.getElementById("ag-procedimento").value.trim(),
+    observacoes: document.getElementById("ag-obs").value.trim(),
+    retorno: document.getElementById("ag-retorno").checked
+  };
+
+  if (agendamentoEditando) {
+    Object.assign(agendamentoEditando, dados);
+  } else {
+    agendamentos.push({
+      id: "ag-" + Date.now() + "-" + Math.random().toString(36).slice(2, 6),
+      ...dados,
+      criadoEm: new Date().toISOString()
+    });
+  }
+  salvar(STORAGE_KEYS.agendamentos, agendamentos);
+  document.getElementById("modal-agendamento").classList.remove("open");
+  renderAgenda();
+  renderDashboard();
+  renderCRC();
+  renderNotificacoes();
+  flash("Agendamento salvo");
+});
+
+document.getElementById("ag-excluir").addEventListener("click", () => {
+  if (!agendamentoEditando) return;
+  if (!confirm("Excluir este agendamento?")) return;
+  agendamentos = agendamentos.filter(a => a.id !== agendamentoEditando.id);
+  salvar(STORAGE_KEYS.agendamentos, agendamentos);
+  document.getElementById("modal-agendamento").classList.remove("open");
+  renderAgenda();
+  renderDashboard();
+  renderNotificacoes();
+});
+
+// ============================================================
+// CRC
+// ============================================================
+function renderCRC() {
+  // Aniversariantes do mês
+  const aniv = pacientes
+    .filter(p => aniversarioEsteMes(p.dataNascimento))
+    .sort((a, b) => new Date(a.dataNascimento).getDate() - new Date(b.dataNascimento).getDate());
+
+  document.getElementById("crc-aniv-count").textContent = aniv.length;
+  document.getElementById("crc-aniversariantes").innerHTML = aniv.length
+    ? aniv.map(p => {
+        const d = new Date(p.dataNascimento);
+        const hoje_ = aniversarioHoje(p.dataNascimento);
+        const ult = ultimoAtendimento(p.id);
+        return `
+          <div class="dash-list-item" data-pac-id="${p.id}">
+            <div>
+              <div class="item-titulo">${escapeHtml(p.nome)} ${hoje_ ? '🎉 HOJE' : ''}</div>
+              <div class="item-sub">${escapeHtml(p.telefone || 'sem telefone')} · ${idadeAtual(p.dataNascimento)} anos · último: ${ult ? fmtDataCurta(ult.data) : 'nunca'}</div>
+            </div>
+            <div class="item-meta">${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}</div>
+          </div>`;
+      }).join("")
+    : `<div class="dash-list-empty">Nenhum aniversariante este mês.</div>`;
+
+  // Sugestões de retorno (sem atendimento há 6+ meses)
+  const hoje = new Date();
+  const limite = new Date(hoje.getTime() - 180 * DIAS_MS).toISOString().slice(0, 10);
+  const sugestoes = pacientes
+    .map(p => ({ p, ult: ultimoAtendimento(p.id) }))
+    .filter(({ ult }) => ult && ult.data < limite)
+    .sort((a, b) => a.ult.data.localeCompare(b.ult.data));
+
+  document.getElementById("crc-retorno-count").textContent = sugestoes.length;
+  document.getElementById("crc-sugestoes").innerHTML = sugestoes.length
+    ? sugestoes.slice(0, 10).map(({ p, ult }) => `
+        <div class="dash-list-item" data-pac-id="${p.id}">
+          <div>
+            <div class="item-titulo">${escapeHtml(p.nome)}</div>
+            <div class="item-sub">${escapeHtml(p.telefone || "—")}</div>
+          </div>
+          <div class="item-meta">Sem retorno há<br><b>${Math.floor(diasEntre(ult.data, hojeISO()) / 30)} meses</b></div>
+        </div>`).join("")
+    : `<div class="dash-list-empty">Todos os pacientes em dia.</div>`;
+
+  // Campanhas
+  document.getElementById("crc-campanhas").innerHTML = campanhas.length
+    ? campanhas.map(c => `
+        <div class="dash-list-item" data-camp-id="${c.id}">
+          <div>
+            <div class="item-titulo">${escapeHtml(c.titulo)} ${c.ativo ? '<span style="color:var(--sucesso);font-size:11px;">● ativa</span>' : '<span style="color:var(--texto-mute);font-size:11px;">○ pausada</span>'}</div>
+            <div class="item-sub">${escapeHtml(c.descricao || "Sem descrição")}</div>
+          </div>
+          <div class="item-meta">${fmtDataCurta(c.dataInicio)}<br>até ${fmtDataCurta(c.dataFim)}</div>
+        </div>`).join("")
+    : `<div class="dash-list-empty">Nenhuma campanha cadastrada.</div>`;
+
+  // Bind clicks
+  document.querySelectorAll("[data-pac-id]").forEach(el => {
+    el.onclick = () => abrirModalPaciente(el.dataset.pacId);
+  });
+  document.querySelectorAll("[data-camp-id]").forEach(el => {
+    el.onclick = () => abrirModalCampanha(el.dataset.campId);
+  });
+}
+
+document.getElementById("nova-campanha").addEventListener("click", () => abrirModalCampanha());
+
+function abrirModalCampanha(id) {
+  campanhaEditando = id ? campanhas.find(c => c.id === id) : null;
+  document.getElementById("camp-titulo").textContent = campanhaEditando ? "Editar campanha" : "Nova campanha";
+  document.getElementById("camp-titulo-input").value = campanhaEditando?.titulo || "";
+  document.getElementById("camp-descricao").value = campanhaEditando?.descricao || "";
+  document.getElementById("camp-inicio").value = campanhaEditando?.dataInicio || hojeISO();
+  document.getElementById("camp-fim").value = campanhaEditando?.dataFim || hojeISO();
+  document.getElementById("camp-ativo").checked = campanhaEditando ? campanhaEditando.ativo : true;
+  document.getElementById("camp-excluir").style.display = campanhaEditando ? "inline-block" : "none";
+  document.getElementById("modal-campanha").classList.add("open");
+}
+
+document.getElementById("camp-salvar").addEventListener("click", () => {
+  const titulo = document.getElementById("camp-titulo-input").value.trim();
+  if (!titulo) { alert("Informe o título."); return; }
+  const dados = {
+    titulo,
+    descricao: document.getElementById("camp-descricao").value.trim(),
+    dataInicio: document.getElementById("camp-inicio").value,
+    dataFim: document.getElementById("camp-fim").value,
+    ativo: document.getElementById("camp-ativo").checked
+  };
+  if (campanhaEditando) Object.assign(campanhaEditando, dados);
+  else campanhas.push({ id: "c-" + Date.now(), ...dados });
+  salvar(STORAGE_KEYS.campanhas, campanhas);
+  document.getElementById("modal-campanha").classList.remove("open");
+  renderCRC();
+  renderDashboard();
+  renderNotificacoes();
+  flash("Campanha salva");
+});
+
+document.getElementById("camp-excluir").addEventListener("click", () => {
+  if (!campanhaEditando) return;
+  if (!confirm("Excluir esta campanha?")) return;
+  campanhas = campanhas.filter(c => c.id !== campanhaEditando.id);
+  salvar(STORAGE_KEYS.campanhas, campanhas);
+  document.getElementById("modal-campanha").classList.remove("open");
+  renderCRC();
+  renderDashboard();
+  renderNotificacoes();
+});
+
+// ============================================================
+// NOTIFICAÇÕES
+// ============================================================
+function gerarNotificacoes() {
+  const lista = [];
+  const hoje = hojeISO();
+  const amanha = new Date(Date.now() + DIAS_MS).toISOString().slice(0, 10);
+
+  // Aniversários hoje
+  pacientes.forEach(p => {
+    if (aniversarioHoje(p.dataNascimento)) {
+      lista.push({
+        id: "anv-" + p.id + "-" + hoje,
+        icone: "🎂",
+        titulo: `${p.nome} faz aniversário hoje!`,
+        sub: `${idadeAtual(p.dataNascimento)} anos · ${p.telefone || "sem telefone"}`,
+        tipo: "aniversario",
+        pacienteId: p.id
+      });
+    }
+  });
+
+  // Agendamentos amanhã
+  agendamentos.filter(a => a.data === amanha && a.status === "agendado").forEach(a => {
+    lista.push({
+      id: "ag-am-" + a.id,
+      icone: "📅",
+      titulo: `Confirmar amanhã: ${nomePaciente(a.pacienteId)}`,
+      sub: `${a.hora} — ${a.procedimento || "Consulta"}${a.retorno ? " (retorno)" : ""}`,
+      tipo: "agendamento",
+      agendamentoId: a.id
+    });
+  });
+
+  // Retornos pendentes (sem reagendamento)
+  const seisMeses = new Date(Date.now() - 180 * DIAS_MS).toISOString().slice(0, 10);
+  pacientes.forEach(p => {
+    const ult = ultimoAtendimento(p.id);
+    if (ult && ult.data < seisMeses) {
+      const futuro = agendamentos.find(a => a.pacienteId === p.id && a.data >= hoje && a.status === "agendado");
+      if (!futuro) {
+        lista.push({
+          id: "ret-" + p.id,
+          icone: "📞",
+          titulo: `Retorno sugerido: ${p.nome}`,
+          sub: `Último atendimento em ${fmtDataCurta(ult.data)}`,
+          tipo: "retorno",
+          pacienteId: p.id
+        });
+      }
+    }
+  });
+
+  // Orçamentos pendentes há +7 dias
+  historico.filter(o => o.status === "pendente").forEach(o => {
+    const dias = diasEntre(o.criadoEm, new Date().toISOString());
+    if (dias >= 7) {
+      lista.push({
+        id: "orc-" + o.id,
+        icone: "📋",
+        titulo: `Orçamento pendente há ${dias} dias`,
+        sub: `${o.paciente || "Sem paciente"} — ${o.servicoNome}`,
+        tipo: "orcamento",
+        orcamentoId: o.id
+      });
+    }
+  });
+
+  // Campanhas terminando em 7 dias
+  campanhas.filter(c => c.ativo).forEach(c => {
+    const dias = diasEntre(hoje, c.dataFim);
+    if (dias >= 0 && dias <= 7) {
+      lista.push({
+        id: "camp-" + c.id,
+        icone: "📣",
+        titulo: `Campanha "${c.titulo}" termina em ${dias} dia(s)`,
+        sub: c.descricao || "",
+        tipo: "campanha",
+        campanhaId: c.id
+      });
+    }
+  });
+
+  return lista;
+}
+
+function renderNotificacoes() {
+  const notifs = gerarNotificacoes();
+  const naoLidas = notifs.filter(n => !notifsLidas.includes(n.id));
+  const badge = document.getElementById("notif-badge");
+  if (naoLidas.length > 0) {
+    badge.textContent = naoLidas.length > 9 ? "9+" : naoLidas.length;
+    badge.style.display = "flex";
+  } else {
+    badge.style.display = "none";
+  }
+
+  const lista = document.getElementById("notif-list");
+  lista.innerHTML = notifs.length
+    ? notifs.map(n => `
+        <div class="notif-item ${notifsLidas.includes(n.id) ? '' : 'naolida'}" data-notif-id="${n.id}" data-tipo="${n.tipo}" data-ref="${n.pacienteId || n.agendamentoId || n.orcamentoId || n.campanhaId || ''}">
+          <div class="notif-icon">${n.icone}</div>
+          <div class="notif-content">
+            <div class="notif-titulo">${escapeHtml(n.titulo)}</div>
+            <div class="notif-sub">${escapeHtml(n.sub)}</div>
+          </div>
+        </div>`).join("")
+    : `<div class="notif-vazio">Sem notificações no momento. 🎉</div>`;
+
+  // Bind clicks
+  lista.querySelectorAll(".notif-item").forEach(el => {
+    el.onclick = () => {
+      // marca como lida
+      if (!notifsLidas.includes(el.dataset.notifId)) {
+        notifsLidas.push(el.dataset.notifId);
+        salvar(STORAGE_KEYS.notifsLidas, notifsLidas);
+      }
+      // navega para o contexto
+      const tipo = el.dataset.tipo, ref = el.dataset.ref;
+      toggleNotifPanel(false);
+      if (tipo === "aniversario" || tipo === "retorno") abrirModalPaciente(ref);
+      else if (tipo === "agendamento") abrirModalAgendamento(ref);
+      else if (tipo === "orcamento") abrirAba("historico");
+      else if (tipo === "campanha") abrirModalCampanha(ref);
+      renderNotificacoes();
+    };
+  });
+}
+
+function toggleNotifPanel(forceOpen) {
+  const panel = document.getElementById("notif-panel");
+  const isOpen = panel.classList.contains("open");
+  if (forceOpen === true || (forceOpen === undefined && !isOpen)) panel.classList.add("open");
+  else panel.classList.remove("open");
+}
+
+document.getElementById("notif-btn").addEventListener("click", (e) => {
+  e.stopPropagation();
+  toggleNotifPanel();
+});
+
+document.addEventListener("click", (e) => {
+  const panel = document.getElementById("notif-panel");
+  const btn = document.getElementById("notif-btn");
+  if (panel.classList.contains("open") && !panel.contains(e.target) && !btn.contains(e.target)) {
+    panel.classList.remove("open");
+  }
+});
+
+document.getElementById("marcar-lidas").addEventListener("click", () => {
+  const todas = gerarNotificacoes().map(n => n.id);
+  notifsLidas = [...new Set([...notifsLidas, ...todas])];
+  salvar(STORAGE_KEYS.notifsLidas, notifsLidas);
+  renderNotificacoes();
+});
 
 function aplicarBranding() {
   if (!conta) return;

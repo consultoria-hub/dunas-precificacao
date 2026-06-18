@@ -962,6 +962,265 @@ main {
   z-index: 200;
 }
 
+/* ===== Dashboard ===== */
+.dash-welcome {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 22px;
+}
+.dash-welcome h2 {
+  font-size: 26px;
+  color: var(--accent);
+  font-weight: 700;
+  letter-spacing: -0.3px;
+}
+.dash-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.dash-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+  margin-bottom: 20px;
+}
+.dash-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+}
+.dash-card.kpi {
+  position: relative;
+  overflow: hidden;
+}
+.dash-card.kpi::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0;
+  width: 4px;
+  height: 100%;
+  background: var(--accent);
+}
+.dash-card.kpi.info::before { background: var(--info); }
+.dash-card.kpi.alerta::before { background: var(--alerta); }
+.dash-card.kpi.sucesso::before { background: var(--sucesso); }
+.dash-card.kpi.accent::before { background: var(--accent); }
+.kpi-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--texto-claro);
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+.kpi-valor {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--texto);
+  line-height: 1.1;
+  margin-bottom: 4px;
+}
+.kpi-sub {
+  font-size: 12px;
+  color: var(--texto-mute);
+}
+
+.dash-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 14px;
+}
+.dash-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.dash-card-header h3 {
+  font-size: 14px;
+  color: var(--accent);
+  font-weight: 600;
+}
+.btn-link-sm {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 6px;
+  font-family: inherit;
+}
+.btn-link-sm:hover { background: var(--accent-soft); }
+
+.dash-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 280px;
+  overflow-y: auto;
+}
+.dash-list-item {
+  padding: 10px 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.dash-list-item:hover {
+  border-color: var(--accent);
+  background: var(--surface-3);
+}
+.dash-list-item .item-titulo { font-weight: 600; color: var(--texto); }
+.dash-list-item .item-sub { font-size: 11px; color: var(--texto-claro); margin-top: 2px; }
+.dash-list-item .item-meta {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--texto-claro);
+  text-align: right;
+  flex-shrink: 0;
+}
+.dash-list-empty {
+  padding: 24px 12px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--texto-mute);
+  font-style: italic;
+}
+
+/* ===== CRC Grid ===== */
+.crc-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+.badge-count {
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 10px;
+  border-radius: 999px;
+}
+
+/* ===== Notification Bell + Panel ===== */
+.notif-btn { position: relative; }
+.notif-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: var(--erro);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 5px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}
+.notif-panel {
+  position: absolute;
+  top: 72px;
+  right: 32px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+  width: 380px;
+  max-height: 480px;
+  display: none;
+  flex-direction: column;
+  z-index: 80;
+}
+.notif-panel.open { display: flex; }
+.notif-header {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.notif-header h3 { font-size: 14px; color: var(--accent); font-weight: 600; }
+.notif-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+  max-height: 400px;
+}
+.notif-item {
+  padding: 10px 12px;
+  border-radius: 8px;
+  display: flex;
+  gap: 10px;
+  cursor: pointer;
+  margin-bottom: 4px;
+  border-left: 3px solid transparent;
+}
+.notif-item:hover { background: var(--surface-2); }
+.notif-item.naolida { background: var(--accent-soft); border-left-color: var(--accent); }
+.notif-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--surface-3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+.notif-content { flex: 1; min-width: 0; }
+.notif-titulo { font-size: 13px; font-weight: 600; color: var(--texto); margin-bottom: 2px; }
+.notif-sub { font-size: 11px; color: var(--texto-claro); }
+.notif-vazio { padding: 30px 20px; text-align: center; color: var(--texto-mute); font-size: 12px; font-style: italic; }
+
+/* ===== Stat cards adicionais ===== */
+.stat-card.sucesso-card { border-left: 3px solid var(--sucesso); }
+.stat-card.alerta-card { border-left: 3px solid var(--alerta); }
+
+/* ===== Info box (no modal de paciente) ===== */
+.info-box {
+  margin-top: 12px;
+  padding: 12px;
+  background: var(--accent-soft);
+  border-radius: 8px;
+  font-size: 12px;
+  color: var(--texto);
+}
+
+/* ===== Textarea ===== */
+.form-grid textarea {
+  padding: 10px 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 14px;
+  outline: none;
+  color: var(--texto);
+  font-family: inherit;
+  resize: vertical;
+  transition: all 0.15s;
+}
+.form-grid textarea:focus {
+  border-color: var(--accent);
+  background: var(--surface-3);
+}
+
 @media (max-width: 980px) {
   .auth-screen {
     flex-direction: column;
